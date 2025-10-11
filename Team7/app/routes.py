@@ -102,47 +102,38 @@ def list_users():
 @bp.route('/login', methods=['GET','POST'])
 def login():
     if request.method == 'POST':
-        email = request.form.get('email','').strip().lower()
+        email = request.form.get('email','')
         password = request.form.get('password','')
 
-        # Look up user
-        from .entity.UserAccount import UserAccount
-        from .entity.UserProfile import UserProfile
-        from . import db
-        user = UserAccount.query.filter_by(email=email).first()
+        ctrl = AuthController()
+        res = ctrl.login(email, password)
 
-        if not user:
-            flash('No account found for that email.', 'error')
-            return render_template('login.html', email=email), 401
-        if user.is_suspended:
-            flash('Account is suspended.', 'error')
-            return render_template('login.html', email=email), 403
-        if not check_password_hash(user.password_hash, password):
-            flash('Incorrect password.', 'error')
-            return render_template('login.html', email=email), 401
+        if not res["ok"]:
+            for e in res["errors"]:
+                flash(e, "error")
+            return render_template('login.html', email=email), res.get("status_code", 400)
 
-        # Get user profile (joined via profile_id)
-        profile = UserProfile.query.get(user.profile_id)
+        user = res["user"]
+        profile_name = (res["profile_name"] or "").lower()
 
         # Success → set session
         session['user_id'] = user.id
         session['user_name'] = user.name
         session['user_email'] = user.email
-        session['profile_name'] = profile.name if profile else None
-        
+        session['profile_name'] = res["profile_name"]
+
         flash('Signed in successfully.', 'ok')
-        
+
         # Redirect based on role
-        if profile and profile.name.lower() == "admin":
+        if profile_name == "admin":
             return redirect(url_for('boundary.list_users'))
         else:
-            return redirect(url_for('boundary.home'))  # or your normal user page
+            return redirect(url_for('boundary.home'))  # or a user dashboard
 
     # GET
     return render_template('login.html')
 
 @bp.route('/logout', methods=['POST'])
 def logout():
-    session.clear()
-    flash('Signed out.', 'ok')
-    return redirect(url_for('boundary.login'))
+    ctrl = AuthController()
+    return ctrl.logout()
