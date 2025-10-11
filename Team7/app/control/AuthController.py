@@ -1,5 +1,7 @@
 from ..repositories import UserRepository
 from ..entity.UserAccount import UserAccount
+from werkzeug.security import check_password_hash
+from flask import session, flash, redirect, url_for
 
 class AuthController:
     def __init__(self):
@@ -40,3 +42,56 @@ class AuthController:
             else:
                 result["errors"].append("Database error: " + msg)
         return result
+        
+    def login(self, email: str, password: str):
+        """
+        Validate credentials. Returns:
+        {
+          "ok": bool,
+          "errors": [str, ...],
+          "user": UserAccount | None,
+          "profile_name": str | None,
+          "status_code": int   # helpful for the route
+        }
+        """
+        result = {"ok": False, "errors": [], "user": None, "profile_name": None, "status_code": 200}
+
+        email = (email or "").strip().lower()
+        password = password or ""
+
+        if not email:
+            result["errors"].append("Email is required.")
+        if not password:
+            result["errors"].append("Password is required.")
+        if result["errors"]:
+            result["status_code"] = 400
+            return result
+
+        user = self.repo.find_by_email(email)
+        if not user:
+            result["errors"].append("No account found for that email.")
+            result["status_code"] = 401
+            return result
+
+        if user.is_suspended:
+            result["errors"].append("Account is suspended.")
+            result["status_code"] = 403
+            return result
+
+        if not check_password_hash(user.password_hash, password):
+            result["errors"].append("Incorrect password.")
+            result["status_code"] = 401
+            return result
+
+        # success
+        result["ok"] = True
+        result["user"] = user
+        # thanks to relationship, user.profile is available
+        result["profile_name"] = (user.profile.name if getattr(user, "profile", None) else None)
+        return result
+        
+    def logout(self):
+        """Logs out the current user by clearing session data."""
+        session.clear()
+        flash('Signed out.', 'ok')
+        return redirect(url_for('boundary.login'))
