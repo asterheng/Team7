@@ -1,0 +1,11 @@
+
+{% extends "base.html" %}
+{% block content %}
+{% if ok %}<p class="ok">{{ ok }}</p>{% endif %}
+{% if errors %}<ul class="err">{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+<form method="post">
+  <label>Name <input type="text" name="name" required></label>
+  <label>Description <textarea name="description" rows="3"></textarea></label>
+  <div class="actions"><button type="submit">Create Profile</button></div>
+</form>
+{% endblock %}

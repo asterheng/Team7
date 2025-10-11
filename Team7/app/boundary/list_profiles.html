@@ -1,0 +1,18 @@
+
+{% extends "base.html" %}
+{% block content %}
+<h2>Profiles</h2>
+<table>
+  <thead><tr><th>ID</th><th>Name</th><th>Description</th><th>Suspended</th></tr></thead>
+  <tbody>
+    {% for p in profiles %}
+    <tr>
+      <td>{{ p.id }}</td>
+      <td>{{ p.name }}</td>
+      <td>{{ p.description }}</td>
+      <td>{{ 'Yes' if p.is_suspended else 'No' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

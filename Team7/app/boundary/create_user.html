@@ -1,0 +1,22 @@
+
+{% extends "base.html" %}
+{% block content %}
+{% if ok %}<p class="ok">{{ ok }}</p>{% endif %}
+{% if errors %}<ul class="err">{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+<form method="post" autocomplete="off">
+  <label>Name <input type="text" name="name" value="{{ request.form.get('name','') }}" required></label>
+  <label>Email <input type="email" name="email" value="{{ request.form.get('email','') }}" required></label>
+  <label>Password <input type="password" name="password" required></label>
+  <label>User Profile
+    <select name="profile_id" required>
+      <option value="">-- Select Profile --</option>
+      {% for p in profiles %}
+        <option value="{{ p.id }}" {% if request.form.get('profile_id')|int == p.id %}selected{% endif %}>
+          {{ p.name }}{% if p.is_suspended %} (suspended){% endif %}
+        </option>
+      {% endfor %}
+    </select>
+  </label>
+  <div class="actions"><button type="submit">Create User</button></div>
+</form>
+{% endblock %}
