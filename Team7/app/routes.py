@@ -1,0 +1,131 @@
+from werkzeug.security import check_password_hash
+
+from flask import Blueprint, render_template, request, redirect, url_for, session, flash
+from functools import wraps
+
+from .control.UserController import UserController
+from .control.SessionController import SessionController
+from .entity.SessionUser import SessionUser
+from .control.ProfileController import ProfileController
+from .repositories import UserProfileRepository, UserRepository
+
+# -----------------------------------------------------------------------------
+# Auth guard
+# -----------------------------------------------------------------------------
+def login_required(view_func):
+    """Decorator to protect routes that require a logged-in user."""
+    @wraps(view_func)
+    def wrapped_view(*args, **kwargs):
+        if not session.get("user_id"):
+            flash("You must log in to access this page.", "error")
+            return redirect(url_for("boundary.login"))
+        return view_func(*args, **kwargs)
+    return wrapped_view
+
+bp = Blueprint('boundary', __name__)
+
+# -----------------------------------------------------------------------------
+# Home → Login
+# -----------------------------------------------------------------------------
+@bp.route('/')
+def home():
+    return redirect(url_for('boundary.login'))
+
+# -----------------------------------------------------------------------------
+# Profiles (CREATE + LIST) - protected
+# -----------------------------------------------------------------------------
+@bp.route('/profiles/new', methods=['GET','POST'])
+@login_required
+def create_profile():
+    ok = None
+    errors = []
+    if request.method == 'POST':
+        ctrl = ProfileController()
+        result = ctrl.CreateUserProfile(
+            request.form.get('name',''),
+            request.form.get('description',''),
+            1 if request.form.get('is_suspended') else 0
+        )
+        if result['ok']:
+            ok = f"Profile created with ID {result['profile_id']}"
+            flash(ok, "ok")
+        else:
+            errors = result['errors']
+            for e in errors:
+                flash(e, "err")
+    return render_template('create_profile.html', ok=ok, errors=errors)
+
+@bp.route('/profiles')
+@login_required
+def list_profiles():
+    ctrl = ProfileController()
+    profiles = ctrl.list_profiles()
+    return render_template('list_profiles.html', profiles=profiles)
+
+# -----------------------------------------------------------------------------
+# Users (CREATE + LIST) - protected
+# -----------------------------------------------------------------------------
+@bp.route('/users/new', methods=['GET','POST'])
+@login_required
+def create_user():
+    profiles = UserProfileRepository().all()
+    ok = None
+    errors = []
+    if request.method == 'POST':
+        ctrl = UserController()
+        result = ctrl.CreateUserAC(
+            request.form.get('name',''),
+            request.form.get('email','').strip().lower(),
+            request.form.get('password',''),
+            request.form.get('profile_id','0'),
+            1 if request.form.get('is_suspended') else 0
+        )
+        if result['ok']:
+            ok = f"User created successfully (ID {result['user_id']})."
+            flash(ok, "ok")
+            return redirect(url_for('boundary.create_user'))  # clears form
+        else:
+            errors = result['errors']
+            for e in errors:
+                flash(e, "err")
+    return render_template('create_user.html', ok=ok, errors=errors, profiles=profiles)
+
+@bp.route('/users')
+@login_required
+def list_users():
+    ctrl = UserController()
+    rows = ctrl.list_all_users()
+    return render_template('list_users.html', rows=rows)
+
+# -----------------------------------------------------------------------------
+# Session (LOGIN + LOGOUT)
+# -----------------------------------------------------------------------------
+@bp.route('/login', methods=['GET','POST'])
+def login():
+    if request.method == 'POST':
+        email = request.form.get('email','')
+        password = request.form.get('password','')
+
+        ctrl = SessionController()
+        res = ctrl.login(email, password)
+
+        if not res["ok"]:
+            for e in res["errors"]:
+                flash(e, "error")
+            return render_template('LoginForm.html', email=email), res.get("status_code", 400)
+
+        # Decide redirect target based on role in the session (set by SessionController)
+        if SessionUser.is_admin():
+            flash('Signed in successfully.', 'ok')
+            return redirect(url_for('boundary.list_users'))
+        else:
+            flash('Signed in successfully.', 'ok')
+            return redirect(url_for('boundary.home'))  # or a user dashboard
+
+    return render_template('LoginForm.html')
+
+@bp.route('/logout', methods=['POST'])
+@login_required
+def logout():
+    ctrl = SessionController()
+    return ctrl.terminateSession()
