@@ -1,39 +1,46 @@
+# app/entity/SessionUser.py
 from flask import session
+from ..entity.UserAccount import UserAccount  # ✅ correct import
 
 class SessionUser:
-    """Encapsulates session-related logic for the logged-in user."""
+    """Encapsulates session and authentication logic."""
 
     @staticmethod
-    def login(user):
-        """Store user info into Flask session."""
-        session['user_id'] = user.id
-        session['user_name'] = user.name
-        session['user_email'] = user.email
-        session['profile_name'] = (
-            user.profile.name if getattr(user, "profile", None) else None
-        )
+    def login(email: str, password: str):
+        """Authenticate credentials and, if valid, start a session."""
+        res = {"ok": False, "errors": [], "user": None}
 
-    @staticmethod
-    def endSession():
-        """Clear all session data."""
-        session.clear()
+        email = (email or "").strip().lower()
+        password = (password or "").strip()
+
+        # Find user
+        user = UserAccount.query.filter_by(email=email).first()
+        if not user:
+            res["errors"].append("No account found for that email.")
+            return res
+
+        if getattr(user, "is_suspended", False):
+            res["errors"].append("Account is suspended.")
+            return res
+
+        if user.password != password:
+            res["errors"].append("Incorrect password.")
+            return res
+
+        # ✅ Success — store session immediately
+        session["user_id"] = user.id
+        session["user_name"] = user.name
+        session["user_email"] = user.email
+        session["profile_name"] = getattr(user.profile, "name", None)
+
+        res["ok"] = True
+        res["user"] = user
+        return res
 
     @staticmethod
     def is_logged_in():
-        """Check if a user is logged in."""
-        return bool(session.get('user_id'))
+        return bool(session.get("user_id"))
 
     @staticmethod
     def is_admin():
-        """Check if the current user is an admin profile."""
-        return session.get('profile_name', '').lower() == 'admin'
-
-    @staticmethod
-    def current_user_info():
-        """Return current session data as dict."""
-        return {
-            "id": session.get("user_id"),
-            "name": session.get("user_name"),
-            "email": session.get("user_email"),
-            "profile": session.get("profile_name"),
-        }
+        return session.get("profile_name", "").lower() == "admin"
