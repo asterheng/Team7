@@ -1,7 +1,10 @@
+from flask import flash
+from sqlalchemy.exc import IntegrityError
 from .. import db
 
 class UserProfile(db.Model):
     __tablename__ = 'user_profiles'
+
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), unique=True, nullable=False)
     description = db.Column(db.Text)
@@ -9,3 +12,71 @@ class UserProfile(db.Model):
 
     def __repr__(self):
         return f"<UserProfile {self.name}>"
+
+    # ------------ Read helpers ------------
+    @classmethod
+    def list_all(cls):
+        """Return all profiles ordered by ID ASC."""
+        try:
+            rows = cls.query.order_by(cls.id.asc()).all()
+            return {"ok": True, "data": rows}
+        except Exception as e:
+            db.session.rollback()
+            return {"ok": False, "errors": [f"Database error: {e}"]}
+
+    @classmethod
+    def get_by_id(cls, profile_id: int):
+        try:
+            row = cls.query.get(profile_id)
+            if row:
+                return {"ok": True, "data": row}
+            return {"ok": False, "errors": ["Profile not found."]}
+        except Exception as e:
+            db.session.rollback()
+            return {"ok": False, "errors": [f"Database error: {e}"]}
+
+    @classmethod
+    def find_by_name(cls, name: str):
+        return cls.query.filter_by(name=(name or "").strip()).first()
+
+    # ------------ Write helpers ------------
+    @classmethod
+    def CreateUserProfile(cls, name: str, description: str = "", is_suspended: int | bool = 0):
+        """
+        Create a profile, validate, commit, and flash messages directly.
+        Returns a dict with ok, errors, and profile_id.
+        """
+        res = {"ok": False, "errors": [], "profile_id": None}
+        name_n = (name or "").strip()
+
+        # --- Duplicate check ---
+        existing = cls.query.filter_by(name=name_n).first()
+        if existing:
+            msg = "A profile with this name already exists."
+            flash(msg, "create_profile:err")
+            res["errors"].append(msg)
+            return res
+
+        # --- Create + Commit ---
+        try:
+            row = cls(name=name_n, description=description, is_suspended=bool(is_suspended))
+            db.session.add(row)
+            db.session.commit()
+            msg = f"Profile created successfully."
+            flash(msg, "create_profile:ok")
+            res.update({"ok": True, "profile_id": row.id})
+            return res
+                
+        except IntegrityError:
+            db.session.rollback()
+            msg = "A profile with this name already exists."
+            flash(msg, "create_profile:err")
+            res["errors"].append(msg)
+            return res
+
+        except Exception as e:
+            db.session.rollback()
+            msg = f"Database error: {e}"
+            flash(msg, "create_profile:err")
+            res["errors"].append(msg)
+            return res
