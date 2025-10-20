@@ -1,6 +1,8 @@
 from flask import flash
 from sqlalchemy.exc import IntegrityError
 from .. import db
+from sqlalchemy import or_
+from sqlalchemy.orm import joinedload
 
 class UserProfile(db.Model):
     __tablename__ = 'user_profiles'
@@ -34,6 +36,20 @@ class UserProfile(db.Model):
         except Exception as e:
             db.session.rollback()
             return {"ok": False, "errors": [f"Database error: {e}"]}
+
+    @classmethod
+    def search(cls, term: str):
+        try:
+            like = f"%{(term or '')}%"
+            rows = (cls.query
+                        .filter(or_(cls.name.ilike(like),
+                                    cls.description.ilike(like)))
+                        .order_by(cls.id.asc())
+                        .all())
+            return {"ok": True, "data": rows, "errors": []}
+        except Exception as e:
+            db.session.rollback()
+            return {"ok": False, "data": [], "errors": [f"Database error: {e}"]}
 
     @classmethod
     def find_by_name(cls, name: str):
@@ -79,4 +95,37 @@ class UserProfile(db.Model):
             msg = f"Database error: {e}"
             flash(msg, "create_profile:err")
             res["errors"].append(msg)
+            return res
+
+    @classmethod
+    def update_profile(cls, profile_id: int, name: str, description: str, is_suspended: int | bool):
+        """Update profile; ensure unique name (excluding self)."""
+        res = {"ok": False, "errors": []}
+
+        # fetch target
+        row = cls.query.get(profile_id)
+        if not row:
+            res["errors"].append("Profile not found.")
+            return res
+
+        name_n = (name or "").strip()
+
+        # unique name check (exclude current)
+        dup = cls.query.filter(cls.name == name_n, cls.id != profile_id).first()
+        if dup:
+            res["errors"].append("A profile with this name already exists.")
+            return res
+
+        # apply changes
+        row.name = name_n
+        row.description = description
+        row.is_suspended = bool(is_suspended)
+
+        try:
+            db.session.commit()
+            res["ok"] = True
+            return res
+        except Exception as e:
+            db.session.rollback()
+            res["errors"].append(f"Database error: {e}")
             return res
