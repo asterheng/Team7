@@ -1,10 +1,12 @@
+from werkzeug.security import check_password_hash
+
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash
 from functools import wraps
 
-from .control.UserController import CreateUserController, ListUserController
+from .control.UserController import CreateUserController, ListUserController, UpdateUserController, UserSearchController
 from .control.SessionController import SessionController
 from .entity.SessionUser import SessionUser
-from .control.ProfileController import  CreateProfileController, ListProfileController
+from .control.ProfileController import  CreateProfileController, ListProfileController, UpdateProfileController, ProfileSearchController
 from .repositories import UserProfileRepository, UserRepository
 
 # -----------------------------------------------------------------------------
@@ -27,7 +29,7 @@ bp = Blueprint('boundary', __name__)
 # -----------------------------------------------------------------------------
 @bp.route('/')
 def home():
-    return redirect(url_for('boundary.login'))
+    return redirect(url_for('boundary.onlogin'))
 
 # -----------------------------------------------------------------------------
 # Profiles (CREATE + LIST) - protected
@@ -47,9 +49,58 @@ def create_profile():
 @bp.route('/profiles')
 @login_required
 def list_profiles():
-    ctrl = ListProfileController()
-    profiles = ctrl.list_profiles_all()
-    return render_template('list_profiles.html', profiles=profiles["data"])
+    q = (request.args.get('q') or '').strip()
+
+    if q:
+        res = ProfileSearchController().search(q)
+    else:
+        res = ListProfileController().list_profiles_all()
+
+    if not res["ok"]:
+        for e in res["errors"]:
+            flash(e, "list_profiles:err")
+        return render_template('list_profiles.html', profiles=[], q=q)
+
+    return render_template('list_profiles.html', profiles=res["data"], q=q)
+
+@bp.route("/profiles/<int:profile_id>/edit", methods=["GET", "POST"])
+@login_required
+def edit_profile(profile_id):
+    ctrl = UpdateProfileController()
+    profile = ctrl.get(profile_id)
+    if not profile:
+        flash("Profile not found.", "update_profile:err")
+        return redirect(url_for("boundary.list_profiles"))
+
+    if request.method == "POST":
+        errors = []
+
+        # --- inline validation here (as you prefer) ---
+        name_n = (request.form.get("name", "") or "").strip()
+        desc_n = request.form.get("description", "") or ""
+        is_susp = 1 if request.form.get("is_suspended") else 0
+
+        if not name_n:
+            errors.append("Name is required.")
+
+        if errors:
+            for e in errors:
+                flash(e, "update_profile:err")
+            # Re-render with a 400 Bad Request status
+            return render_template("update_profile.html", profile=profile["data"]), 400
+
+        # call controller → entity handles duplicate-name check & commit
+        res = ctrl.update(profile_id, name_n, desc_n, is_susp)
+
+        if res["ok"]:
+            flash("Profile updated successfully.", "list_profile:ok")
+            return redirect(url_for("boundary.list_profiles"))
+        else:
+            for e in res["errors"]:
+                flash(e, "update_profile:err")
+
+    # GET or POST with errors
+    return render_template("update_profile.html", profile=profile["data"])
 
 # -----------------------------------------------------------------------------
 # Users (CREATE + LIST) - protected
@@ -57,7 +108,7 @@ def list_profiles():
 @bp.route('/users/new', methods=['GET','POST'])
 @login_required
 def create_user():
-    profiles = UserProfileRepository().all()
+    profiles = ListProfileController().list_profiles_all()
     if request.method == 'POST':
         ctrl = CreateUserController()
         ctrl.CreateUserAC(
@@ -68,14 +119,80 @@ def create_user():
             1 if request.form.get('is_suspended') else 0
         )
         return redirect(url_for('boundary.create_user'))  # refresh after post
-    return render_template('create_user.html', profiles=profiles)
+    return render_template('create_user.html', profiles=profiles["data"])
 
 @bp.route('/users')
 @login_required
 def list_users():
-    ctrl = ListUserController()
-    rows = ctrl.list_all_users()
-    return render_template('list_users.html', rows=rows["data"])
+    q = (request.args.get('q') or '').strip()
+    page = request.args.get('page', type=int)  # pass None to disable pagination
+    per_page = 20
+
+    if q:
+        res = UserSearchController().search(q, page=page, per_page=per_page)
+    else:
+        res = ListUserController().list_all_users(page=page, per_page=per_page)
+
+    if not res["ok"]:
+        for e in res["errors"]:
+            flash(e, "list_users:err")
+        return render_template('list_users.html', rows=[], q=q, pagination=None)
+
+    return render_template(
+        'list_users.html',
+        rows=res["data"],                  # list[(UserAccount, UserProfile)]
+        q=q,
+        pagination=res.get("pagination")   # dict or None
+    )
+
+@bp.route("/users/<int:user_id>/edit", methods=["GET", "POST"])
+@login_required
+def edit_user(user_id):
+    ctrl = UpdateUserController()
+    user = ctrl.get(user_id)
+    if not user:
+        flash("User not found.", "update_user:err")
+        return redirect(url_for("boundary.list_users"))
+
+    profiles = ListProfileController().list_profiles_all()
+
+    if request.method == "POST":
+        errors = []
+
+        # --- inline validation in routes.py ---
+        name_n  = (request.form.get("name", "")  or "").strip()
+        email_n = (request.form.get("email", "") or "").strip().lower()
+
+        if not name_n:
+            errors.append("Name is required.")
+        if not email_n:
+            errors.append("Email is required.")
+
+        if errors:
+            for e in errors:
+                flash(e, "update_user:err")
+            return render_template("update_user.html", user=user, profiles=profiles["data"]), 400
+
+        # --- call controller with normalized values ---
+        res = ctrl.update(
+            user_id=user_id,
+            name=name_n,
+            email=email_n,
+            password=request.form.get("password") or None,                 # blank -> keep current password
+            profile_id=request.form.get("profile_id", "0"),
+            is_suspended=1 if request.form.get("is_suspended") else 0
+        )
+
+        if res["ok"]:
+            flash("User updated successfully.", "list_user:ok")
+            return redirect(url_for("boundary.list_users"))
+        else:
+            for e in res["errors"]:
+                flash(e, "update_user:err")
+
+    # GET (or POST with errors) -> render form
+    return render_template("update_user.html", user=user, profiles=profiles["data"])
+
 
 # -----------------------------------------------------------------------------
 # Session (LOGIN + LOGOUT)
