@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Edit Profile</h1>
+
+{% with messages = get_flashed_messages(with_categories=true,
+      category_filter=['update_profile:ok','update_profile:err']) %}
+  {% if messages %}
+    <ul class="flashes">
+      {% for category, message in messages %}
+        {% set cat = category.split(':')[-1] %}
+        <li class="{{ cat }}">{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+
+<form method="post" class="profile-form" autocomplete="off">
+  <div class="form-group">
+    <label for="name">Name</label>
+    <input id="name" name="name" type="text" value="{{ profile.name }}" required>
+  </div>
+
+  <div class="form-group">
+    <label for="description">Description</label>
+    <textarea id="description" name="description" rows="3">{{ profile.description or '' }}</textarea>
+  </div>
+
+  <div class="form-group checkbox">
+    <label>
+      <input type="checkbox" name="is_suspended" {% if profile.is_suspended %}checked{% endif %}>
+      Suspended
+    </label>
+  </div>
+
+  <div class="form-actions">
+    <a class="btn" href="{{ url_for('boundary.list_profiles') }}">Cancel</a>
+    <button class="btn primary" type="submit">Save Changes</button>
+  </div>
+</form>
+
+<style>
+  .flashes{list-style:none;padding:0;margin:1rem 0;text-align:center}
+  .flashes li{display:inline-block;padding:.7rem 1rem;border-radius:10px;margin:.25rem}
+  .flashes .ok{background:#d1fae5;border:1px solid #10b981;color:#065f46}
+  .flashes .err{background:#fee2e2;border:1px solid #ef4444;color:#991b1b}
+
+	h1 {
+	  text-align: center;      /* centers text horizontally */
+	  margin-top: 2rem;
+	  color: #1e293b;
+	  font-weight: 700;
+	}
+
+  .profile-form{    background: #ffffff;
+    padding: 2rem 2.5rem;
+    border-radius: 14px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+    max-width: 500px;
+    margin: 1rem auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;}
+  .form-group{display:flex;flex-direction:column;gap:.4rem;margin-bottom:1rem}
+  label{font-weight:600;color:#1e293b}
+  input,textarea{padding:.75rem 1rem;border-radius:10px;border:1px solid #cbd5e1;
+    background:#f8fafc;transition:border-color .2s, box-shadow .2s;font-size:1rem}
+  input:focus,textarea:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.2);outline:none;background:#fff}
+  textarea{resize:none}
+  .checkbox label{display:flex;align-items:center;gap:.5rem}
+  .form-actions{display:flex;justify-content:flex-end;gap:.75rem;margin-top:.5rem}
+  .btn{padding:.8rem 1.1rem;border-radius:10px;border:1px solid #cbd5e1;background:#f1f5f9;color:#0f172a;text-decoration:none}
+  .btn.primary{background:linear-gradient(135deg,#2563eb,#1d4ed8);border:none;color:#fff;font-weight:600}
+  .btn.primary:hover{filter:brightness(1.06)}
+</style>
+{% endblock %}
