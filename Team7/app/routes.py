@@ -29,7 +29,7 @@ bp = Blueprint('boundary', __name__)
 # -----------------------------------------------------------------------------
 @bp.route('/')
 def home():
-    return redirect(url_for('boundary.onlogin'))
+    return redirect(url_for('boundary.on_login'))
 
 # -----------------------------------------------------------------------------
 # Profiles (CREATE + LIST) - protected
