@@ -18,39 +18,41 @@ class UserAccount(db.Model):
 
     profile = db.relationship('UserProfile', backref='users')
     
-    """Create user""" 
+    # -------------------------------
+    # Create
+    # -------------------------------
     @classmethod
-    def CreateUserAC(cls, name: str, email: str, password: str, profile_id: int, is_suspended: int):
-        # duplicate check (use same normalized value)
-        if cls.query.filter_by(email=email).first():
-            flash("A user with this email already exists.", "create_user:err")
-            return {"ok": False, "errors": ["A user with this email already exists."]}
-
+    def CreateUserAC(cls, name, email, password, profile_id, is_suspended) -> str:
+        """Create a new user; returns 'success', 'duplicate', or 'error'."""
         try:
+            # Check duplicate
+            if cls.query.filter_by(email=email).first():
+                return "duplicate"
+
             user = cls(
                 name=name,
                 email=email,
-                password=password,                     
+                password=password,
                 profile_id=int(profile_id),
-                is_suspended=bool(is_suspended),
+                is_suspended=int(is_suspended),
             )
             db.session.add(user)
             db.session.commit()
-            flash("User created successfully.", "create_user:ok")
-            return {"ok": True, "user_id": user.id}
+            return "success"
 
         except IntegrityError:
             db.session.rollback()
-            flash("A user with this email already exists (race condition).", "create_user:err")
-            return {"ok": False, "errors": ["Duplicate email"]}
+            return "error"
 
-        except Exception as e:
+        except Exception:
             db.session.rollback()
-            flash("Database error: " + str(e), "create_user:err")
-            return {"ok": False, "errors": [str(e)]}
-    
+            return "error"
+
+    # -------------------------------
+    # Read / List
+    # -------------------------------
     @classmethod
-    def list_all(cls, page: int | None = None, per_page: int = 20):
+    def ListUsers(cls, page: int | None = None, per_page: int = 20):
         """
         Return all users joined with their profiles, ordered by ID ASC.
         - If page is given -> returns pagination dict with .items in data
@@ -82,8 +84,56 @@ class UserAccount(db.Model):
             db.session.rollback()
             return {"ok": False, "data": [], "errors": [f"Database error: {e}"]}
   
+    # -------------------------------
+    # Update
+    # -------------------------------
     @classmethod
-    def search(cls, term: str, page: int | None = None, per_page: int = 20):
+    def UpdateUser(cls, user_id: int, name: str, email: str, password: str | None,
+                    profile_id: int, is_suspended: int) -> str:
+        """
+        Update a user record.
+        Returns one of: 'success', 'not_found', 'duplicate', 'error'.
+        """
+        try:
+            # Find the user
+            user = cls.query.get(user_id)
+            if not user:
+                return "not_found"
+
+            # Duplicate email check (exclude self)
+            dup = cls.query.filter(cls.email == email, cls.id != user_id).first()
+            if dup:
+                return "duplicate"
+
+            # Apply changes
+            user.name = name
+            user.email = email
+            if password:  # only change if provided
+                user.password = password
+            user.profile_id = int(profile_id)
+            user.is_suspended = int(is_suspended)
+
+            db.session.commit()
+            return "success"
+
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error updating user {user_id}: {e}")
+            return "error"
+    
+    @classmethod
+    def get_by_id(cls, user_id: int):
+        return (
+            cls.query.options(joinedload(cls.profile))
+            .filter_by(id=user_id)
+            .first()
+        )
+     
+    # -------------------------------
+    # Search
+    # -------------------------------
+    @classmethod
+    def SearchUser(cls, term: str, page: int | None = None, per_page: int = 20):
         like = f"%{(term or '').strip()}%"
         q = (
             db.session.query(cls, UserProfile)
@@ -106,50 +156,45 @@ class UserAccount(db.Model):
             }, "errors": []}
         rows = q.all()
         return {"ok": True, "data": rows, "errors": []}
-  
-  
+        
+    # -------------------------------
+    # Suspended
+    # -------------------------------    
     @classmethod
-    def get_by_id(cls, user_id: int):
-        return (
-            cls.query.options(joinedload(cls.profile))
-            .filter_by(id=user_id)
-            .first()
-        )
-    
-    @classmethod
-    def update_user(cls, user_id: int, name: str, email: str, password: str | None,
-                    profile_id: int, is_suspended: int | bool):
+    def SuspendedUser(cls, row_id: int, is_suspended: int | bool) -> str:
         """
-        Update a user. If password is blank/None, keep the current password.
-        Returns: {"ok": bool, "errors": [..]}
+        Set suspension flag only.
+        Returns: 'success' | 'noop' | 'not_found' | 'error'
         """
-        res = {"ok": False, "errors": []}
-
-        # Find the user
-        user = cls.query.get(user_id)
-        if not user:
-            res["errors"].append("User not found.")
-            return res
-
-        # Duplicate email check (exclude self)
-        dup = cls.query.filter(cls.email == email, cls.id != user_id).first()
-        if dup:
-            res["errors"].append("A user with this email already exists.")
-            return res
-
-        # Apply changes
-        user.name = name
-        user.email = email
-        if password:                  # only change if provided
-            user.password = password  # plain text per your current design
-        user.profile_id = int(profile_id)
-        user.is_suspended = bool(is_suspended)
-
         try:
+            row = cls.query.get(row_id)
+            if not row:
+                return "not_found"
+
+            new_val = bool(is_suspended)
+            if row.is_suspended == new_val:
+                return "noop"
+
+            row.is_suspended = new_val
             db.session.commit()
-            res["ok"] = True
-            return res
+            return "success"
         except Exception as e:
             db.session.rollback()
-            res["errors"].append(f"Database error: {e}")
-            return res
+            print(f"[{cls.__name__}] set_suspended error for id={row_id}: {e}")
+            return "error"
+            
+    # -------------------------------
+    # Suspended
+    # -------------------------------   
+    @classmethod
+    def login(cls, email: str, password: str):
+        user = cls.query.filter_by(email=email).first()
+
+        if not user:
+            return {"ok": False, "data": None, "errors": ["Invalid email."]}
+        if user.is_suspended:
+            return {"ok": False, "data": None, "errors": ["Account suspended."]}
+        if user.password != password:  # later: check_password_hash
+            return {"ok": False, "data": None, "errors": ["Invalid password."]}
+
+        return {"ok": True, "data": user, "errors": []}
