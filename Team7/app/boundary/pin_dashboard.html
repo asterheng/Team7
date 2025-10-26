@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>PIN Dashboard - Person In Need</h2>
+
+<div class="welcome-section">
+    <p>Welcome, <strong>{{ session.user_name }}</strong>!</p>
+    <p>You are logged in as a Person In Need. Here you can manage your assistance requests.</p>
+</div>
+
+<div class="dashboard-actions">
+    <div class="action-card">
+        <h3>📋 My Requests</h3>
+        <p>View and manage your current assistance requests</p>
+        <a href="{{ url_for('boundary.pin_requests') }}" class="dashboard-btn">Manage Requests</a>
+    </div>
+    
+    <div class="action-card">
+        <h3>➕ New Request</h3>
+        <p>Create a new request for assistance</p>
+        <a href="{{ url_for('boundary.create_request') }}" class="dashboard-btn">Create Request</a>
+    </div>
+    
+    <div class="action-card">
+        <h3>📊 Request History</h3>
+        <p>View your completed requests and matches</p>
+        <a href="{{ url_for('boundary.request_history') }}" class="dashboard-btn">View History</a>
+    </div>
+</div>
+
+<style>
+.dashboard-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+}
+
+.action-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+}
+
+.action-card h3 {
+    margin-top: 0;
+    color: #1e293b;
+}
+
+.action-card p {
+    color: #64748b;
+    margin-bottom: 1rem;
+}
+
+/* DASHBOARD BUTTONS - ALWAYS VISIBLE */
+.dashboard-btn {
+    display: inline-block;
+    background: #2563eb;
+    color: white;
+    padding: 0.6rem 1.2rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    border: 2px solid #1d4ed8;
+    transition: background 0.2s;
+}
+
+.dashboard-btn:hover {
+    background: #1d4ed8;
+    color: white;
+}
+
+.welcome-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+}
+
+.welcome-section p {
+    margin: 0.5rem 0;
+    font-size: 1.1rem;
+}
+</style>
+{% endblock %}

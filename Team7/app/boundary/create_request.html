@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% block content %}
+<!-- 🆕 ADD NAVIGATION HEADER -->
+<div class="page-header">
+    <h2>Create New Assistance Request</h2>
+    <div class="header-actions">
+        <a href="{{ url_for('boundary.pin_dashboard') }}" class="btn btn-secondary">← Back to Dashboard</a>
+        <a href="{{ url_for('boundary.pin_requests') }}" class="btn btn-primary">📋 View My Requests</a>
+    </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <ul class="flashes">
+      {% for category, message in messages %}
+        <li class="{{ category }}">{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+
+<form method="post">
+  <label>Request Title *
+    <input type="text" name="title" value="{{ request.form.get('title', '') }}" required 
+           placeholder="e.g., Need transportation to hospital">
+  </label>
+  
+  <label>Category *
+    <select name="category" required>
+      <option value="">-- Select Category --</option>
+      <option value="Medical" {% if request.form.get('category') == 'Medical' %}selected{% endif %}>Medical Assistance</option>
+      <option value="Transportation" {% if request.form.get('category') == 'Transportation' %}selected{% endif %}>Transportation</option>
+      <option value="Food" {% if request.form.get('category') == 'Food' %}selected{% endif %}>Food Delivery</option>
+      <option value="Companionship" {% if request.form.get('category') == 'Companionship' %}selected{% endif %}>Companionship</option>
+      <option value="Household" {% if request.form.get('category') == 'Household' %}selected{% endif %}>Household Chores</option>
+      <option value="Other" {% if request.form.get('category') == 'Other' %}selected{% endif %}>Other</option>
+    </select>
+  </label>
+  
+  <label>Urgency Level
+    <select name="urgency">
+      <option value="low" {% if request.form.get('urgency') == 'low' %}selected{% endif %}>Low - Can wait a few days</option>
+      <option value="medium" {% if request.form.get('urgency') == 'medium' %}selected{% endif %}>Medium - Within 2-3 days</option>
+      <option value="high" {% if request.form.get('urgency') == 'high' %}selected{% endif %}>High - Need within 24 hours</option>
+      <option value="urgent" {% if request.form.get('urgency') == 'urgent' %}selected{% endif %}>Urgent - Immediate need</option>
+    </select>
+  </label>
+  
+  <label>Description *
+    <textarea name="description" rows="5" required 
+              placeholder="Please describe your request in detail...">{{ request.form.get('description', '') }}</textarea>
+  </label>
+  
+  <label>Location
+    <input type="text" name="location" value="{{ request.form.get('location', '') }}" 
+           placeholder="Your address or meeting point">
+  </label>
+  
+  <label>Preferred Date
+    <input type="date" name="preferred_date" value="{{ request.form.get('preferred_date', '') }}">
+  </label>
+  
+  <div class="actions">
+    <button type="submit" class="btn btn-primary">Create Request</button>
+    <a href="{{ url_for('boundary.pin_dashboard') }}" class="btn btn-secondary">Cancel</a>
+  </div>
+</form>
+
+<style>
+/* 🆕 FIX NAVIGATION HEADER BUTTON VISIBILITY */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+    border-bottom: 2px solid #e5e7eb;
+    padding-bottom: 1rem;
+}
+.header-actions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+/* 🆕 FIX BUTTON STYLES - USE SOLID COLORS */
+.btn {
+    display: inline-block !important;
+    padding: 0.6rem 1.2rem !important;
+    border-radius: 8px !important;
+    text-decoration: none !important;
+    font-weight: 600 !important;
+    border: none !important;
+    cursor: pointer !important;
+    font-size: 0.9rem !important;
+    text-align: center !important;
+    transition: background 0.2s !important;
+    
+    /* 🆕 FORCE VISIBILITY */
+    opacity: 1 !important;
+    visibility: visible !important;
+    color: white !important;
+}
+
+/* Primary button - Solid blue */
+.btn-primary {
+    background: #2563eb !important;
+    color: white !important;
+    border: 1px solid #1d4ed8 !important;
+}
+
+.btn-primary:hover {
+    background: #1d4ed8 !important;
+    color: white !important;
+}
+
+/* Secondary button - Solid gray */
+.btn-secondary {
+    background: #6b7280 !important;
+    color: white !important;
+    border: 1px solid #4b5563 !important;
+}
+
+.btn-secondary:hover {
+    background: #4b5563 !important;
+    color: white !important;
+}
+
+/* Form action buttons */
+.actions .btn {
+    padding: 0.75rem 1.5rem !important;
+    font-size: 1rem !important;
+}
+
+/* Your existing styles */
+.flashes { 
+    list-style: none; 
+    padding: 0; 
+    margin: 1rem 0; 
+}
+.flashes li { 
+    padding: .6rem 1rem; 
+    border-radius: 8px; 
+    margin-bottom: .5rem; 
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+.flashes .ok { 
+    background: #d1fae5; 
+    color: #065f46; 
+    border: 1px solid #10b981; 
+}
+.flashes .err, .flashes .error { 
+    background: #fee2e2; 
+    color: #991b1b; 
+    border: 1px solid #ef4444; 
+}
+.actions { 
+    margin-top: 1.5rem; 
+    display: flex; 
+    gap: 1rem; 
+}
+textarea { 
+    width: 100%; 
+    max-width: 560px; 
+    padding: 0.6rem; 
+    border: 1px solid #e5e7eb; 
+    border-radius: 10px; 
+    font-family: inherit; 
+}
+
+/* 🆕 DEBUG: Force all links and buttons to be visible */
+a, button {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+</style>
+{% endblock %}

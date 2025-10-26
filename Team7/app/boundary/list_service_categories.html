@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>Service Categories</h1>
+  
+{% with messages = get_flashed_messages(with_categories=true,
+      category_filter=['list_service:ok', 'list_service:err']) %}
+  {% if messages %}
+    <ul class="flashes">
+      {% for category, message in messages %}
+        {% set cat = category.split(':')[-1] %}
+        <li class="{{ cat }}">{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+
+  <form method="get" class="search-bar" autocomplete="off">
+    <input type="text" name="q" placeholder="Search categories..." value="{{ q or '' }}">
+    <button class="btn primary" type="submit">Search</button>
+	{% if q %}
+		<a class="btn reset" href="{{ url_for('boundary.list_service_categories') }}">Reset</a>
+	{% endif %}
+  </form>
+
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Description</th>
+        <th>Suspended</th>
+        <th>Update</th>
+		<th>Suspend</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in categories %}
+        <tr>
+          <td>{{ c.id }}</td>
+          <td>{{ c.name }}</td>
+          <td>{{ c.description }}</td>
+          <td>{{ 'Yes' if c.is_suspended else 'No' }}</td>
+          <td>
+            <a href="{{ url_for('boundary.update_service_category', category_id=c.id) }}" class="btn small edit-link">Edit</a>
+          </td>
+		  <td>
+		  <form method="post" action="{{ url_for('boundary.suspend_service_category', category_id=c.id) }}" style="display:inline;">
+			<input type="hidden" name="is_suspended" value="{{ 0 if c.is_suspended else 1 }}">
+			<button type="submit" class="btn small {{ 'unsuspend' if c.is_suspended else 'suspend' }}">
+			  {{ 'Unsuspend' if c.is_suspended else 'Suspend' }}
+			</button>
+		  </form>
+		</td>
+
+        </tr>
+      {% else %}
+        <tr>
+          <td colspan="5">No categories found.</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <style>
+  .flashes{list-style:none;padding:0;margin:1rem 0;text-align:center}
+  .flashes li{display:inline-block;padding:.7rem 1rem;border-radius:10px;margin:.25rem}
+  .flashes .ok{background:#d1fae5;border:1px solid #10b981;color:#065f46}
+  .flashes .err{background:#fee2e2;border:1px solid #ef4444;color:#991b1b}
+  .btn{padding:.8rem 1.1rem;border-radius:10px;border:1px solid #cbd5e1;background:#f1f5f9;color:#0f172a;text-decoration:none}
+  .btn.primary{background:linear-gradient(135deg,#2563eb,#1d4ed8);border:none;color:#fff;font-weight:600}
+  .btn.primary:hover{filter:brightness(1.06)}
+  .btn.small {
+  padding: .4rem .7rem;
+  font-size: 0.85rem;
+}
+.btn.suspend {
+  background: #fee2e2;
+  border: 1px solid #ef4444;
+  color: #991b1b;
+}
+.btn.unsuspend {
+  background: #d1fae5;
+  border: 1px solid #10b981;
+  color: #065f46;
+}
+.btn.suspend:hover, .btn.unsuspend:hover {
+  filter: brightness(1.05);
+}
+  </style>
+{% endblock %}
