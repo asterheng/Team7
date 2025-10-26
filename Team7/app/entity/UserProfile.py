@@ -15,17 +15,86 @@ class UserProfile(db.Model):
     def __repr__(self):
         return f"<UserProfile {self.name}>"
 
-    # ------------ Read helpers ------------
+    # -------------------------------
+    # Create
+    # -------------------------------
     @classmethod
-    def list_all(cls):
-        """Return all profiles ordered by ID ASC."""
+    def CreateUserProfile(cls, name: str, description: str = "", is_suspended: int = 0) -> str:
+        """
+        Create a profile.
+        Returns one of: 'success', 'invalid', 'duplicate', 'error'.
+        """
         try:
-            rows = cls.query.order_by(cls.id.asc()).all()
-            return {"ok": True, "data": rows}
+            if not name:
+                return "invalid"
+
+            # Duplicate check
+            if cls.query.filter_by(name=name).first():
+                return "duplicate"
+
+            row = cls(
+                name=name,
+                description=(description or ""),
+                is_suspended=int(is_suspended),
+            )
+            db.session.add(row)
+            db.session.commit()
+            return "success"
+
         except Exception as e:
             db.session.rollback()
-            return {"ok": False, "errors": [f"Database error: {e}"]}
+            print(f"Error creating profile: {e}")
+            return "error"
+       
+    # -------------------------------
+    # Read / List
+    # -------------------------------        
+    @classmethod
+    def ListUserProfile(cls):
+        """Return all service categories ordered by ID ASC."""
+        try:
+            rows = cls.query.order_by(cls.id.asc()).all()
+            return {"ok": True, "data": rows, "errors": []}
+        except Exception as e:
+            db.session.rollback()
+            return {"ok": False, "data": [], "errors": [f"Database error: {e}"]}
 
+    # -------------------------------
+    # Update
+    # -------------------------------
+    @classmethod
+    def UpdateUserProfile(cls, profile_id: int, name: str, description: str, is_suspended: int | bool) -> str:
+        """
+        Update a profile record.
+        Returns one of: 'success', 'not_found', 'duplicate', 'invalid', 'error'.
+        """
+        try:
+            # fetch target
+            row = cls.query.get(profile_id)
+            if not row:
+                return "not_found"
+
+            if not name:
+                return "invalid"
+
+            # unique name check (exclude current)
+            dup = cls.query.filter(cls.name == name, cls.id != profile_id).first()
+            if dup:
+                return "duplicate"
+
+            # apply changes
+            row.name = name
+            row.description = description or ""
+            row.is_suspended = bool(is_suspended)
+
+            db.session.commit()
+            return "success"
+
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error updating profile {profile_id}: {e}")
+            return "error"
+                    
     @classmethod
     def get_by_id(cls, profile_id: int):
         try:
@@ -36,96 +105,43 @@ class UserProfile(db.Model):
         except Exception as e:
             db.session.rollback()
             return {"ok": False, "errors": [f"Database error: {e}"]}
-
+    
+    # -------------------------------
+    # Search
+    # -------------------------------            
     @classmethod
-    def search(cls, term: str):
+    def SearchUserProfile(cls, term: str):
         try:
             like = f"%{(term or '')}%"
-            rows = (cls.query
-                        .filter(or_(cls.name.ilike(like),
-                                    cls.description.ilike(like)))
-                        .order_by(cls.id.asc())
-                        .all())
+            rows = (
+                cls.query
+                .filter(
+                    or_(cls.name.ilike(like), cls.description.ilike(like))
+                )
+                .order_by(cls.id.asc())
+                .all()
+            )
             return {"ok": True, "data": rows, "errors": []}
         except Exception as e:
             db.session.rollback()
             return {"ok": False, "data": [], "errors": [f"Database error: {e}"]}
-
+            
+    # -------------------------------
+    # Suspended
+    # -------------------------------   
     @classmethod
-    def find_by_name(cls, name: str):
-        return cls.query.filter_by(name=(name or "").strip()).first()
-
-    # ------------ Write helpers ------------
-    @classmethod
-    def CreateUserProfile(cls, name: str, description: str = "", is_suspended: int | bool = 0):
-        """
-        Create a profile, validate, commit, and flash messages directly.
-        Returns a dict with ok, errors, and profile_id.
-        """
-        res = {"ok": False, "errors": [], "profile_id": None}
-        name_n = (name or "").strip()
-
-        # --- Duplicate check ---
-        existing = cls.query.filter_by(name=name_n).first()
-        if existing:
-            msg = "A profile with this name already exists."
-            flash(msg, "create_profile:err")
-            res["errors"].append(msg)
-            return res
-
-        # --- Create + Commit ---
+    def SuspendedUserProfile(cls, profile_id: int, is_suspended: int | bool) -> str:
         try:
-            row = cls(name=name_n, description=description, is_suspended=bool(is_suspended))
-            db.session.add(row)
+            row = cls.query.get(profile_id)
+            if not row:
+                return "not_found"
+            new_val = bool(is_suspended)
+            if row.is_suspended == new_val:
+                return "noop"
+            row.is_suspended = new_val
             db.session.commit()
-            msg = f"Profile created successfully."
-            flash(msg, "create_profile:ok")
-            res.update({"ok": True, "profile_id": row.id})
-            return res
-                
-        except IntegrityError:
-            db.session.rollback()
-            msg = "A profile with this name already exists."
-            flash(msg, "create_profile:err")
-            res["errors"].append(msg)
-            return res
-
+            return "success"
         except Exception as e:
             db.session.rollback()
-            msg = f"Database error: {e}"
-            flash(msg, "create_profile:err")
-            res["errors"].append(msg)
-            return res
-
-    @classmethod
-    def update_profile(cls, profile_id: int, name: str, description: str, is_suspended: int | bool):
-        """Update profile; ensure unique name (excluding self)."""
-        res = {"ok": False, "errors": []}
-
-        # fetch target
-        row = cls.query.get(profile_id)
-        if not row:
-            res["errors"].append("Profile not found.")
-            return res
-
-        name_n = (name or "").strip()
-
-        # unique name check (exclude current)
-        dup = cls.query.filter(cls.name == name_n, cls.id != profile_id).first()
-        if dup:
-            res["errors"].append("A profile with this name already exists.")
-            return res
-
-        # apply changes
-        row.name = name_n
-        row.description = description
-        row.is_suspended = bool(is_suspended)
-
-        try:
-            db.session.commit()
-            res["ok"] = True
-            return res
-        except Exception as e:
-            db.session.rollback()
-            res["errors"].append(f"Database error: {e}")
-            return res
+            print(f"[UserProfile] set_suspended error id={profile_id}: {e}")
+            return "error"
