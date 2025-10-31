@@ -25,6 +25,19 @@
         <p>View your completed requests and matches</p>
         <a href="{{ url_for('boundary.request_history') }}" class="dashboard-btn">View History</a>
     </div>
+
+    <div class="action-card">
+        <h3>✅ Completed Matches</h3>
+        <p>View and analyze your completed assistance</p>
+        <a href="{{ url_for('boundary.pin_completed_matches_history') }}" class="dashboard-btn">View Matches</a>
+    </div>
+    
+    <!-- 🆕 NEW: Analytics Card -->
+    <div class="action-card">
+        <h3>📈 Request Analytics</h3>
+        <p>Track views and interest in your requests</p>
+        <a href="{{ url_for('boundary.pin_requests') }}" class="dashboard-btn">View Analytics</a>
+    </div>
 </div>
 
 <style>

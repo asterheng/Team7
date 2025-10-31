@@ -36,16 +36,23 @@
 <body>
   <nav class="topnav">
     <div class="left">
-      {% if session.get('profile_name', '').lower() == 'admin' %}
-        <a href="{{ url_for('boundary.create_profile') }}">Create Profile</a>
-        <a href="{{ url_for('boundary.create_user') }}">Create User</a>
-        <a href="{{ url_for('boundary.list_profiles') }}">List Profiles</a>
-        <a href="{{ url_for('boundary.list_users') }}">List Users</a>
-      {% endif %}
-	  {% if session.get('profile_name', '').lower() == 'platform management' %}
-		<a href="{{ url_for('boundary.create_service_category') }}">Create Category</a>
-		<a href="{{ url_for('boundary.list_service_categories') }}">List Categories</a>
-	  {% endif %}
+		{% if session.get('profile_name','').lower() == 'admin' %}
+		  {% set on_admin = request.endpoint == 'boundary.admin_dashboard' %}
+		  {% if has_endpoint('boundary.admin_dashboard') %}
+			{% if not on_admin %}
+				<a href="{{ url_for('boundary.admin_dashboard') }}">Home</a>
+				{% if has_endpoint('boundary.create_user') %}<a href="{{ url_for('boundary.create_user') }}">Create User</a>{% endif %}
+				{% if has_endpoint('boundary.list_users') %}<a href="{{ url_for('boundary.list_users') }}">List Users</a>{% endif %}
+				{% if has_endpoint('boundary.create_profile') %}<a href="{{ url_for('boundary.create_profile') }}">Create Profile</a>{% endif %}
+				{% if has_endpoint('boundary.list_profiles') %}<a href="{{ url_for('boundary.list_profiles') }}">List Profiles</a>{% endif %}
+			{% endif %}
+		  {% endif %}
+		{% endif %}
+
+		{% if session.get('profile_name', '').lower() == 'platform management' %}
+			<a href="{{ url_for('boundary.create_service_category') }}">Create Category</a>
+			<a href="{{ url_for('boundary.list_service_categories') }}">List Categories</a>
+		{% endif %}
     </div>
 
     <div class="right">

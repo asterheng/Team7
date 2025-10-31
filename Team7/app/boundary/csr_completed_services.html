@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Completed Volunteer Services - CSR</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Completed Volunteer Services</h1>
+            <a href="{{ url_for('boundary.csr_dashboard') }}" class="btn btn-secondary">← Back to Dashboard</a>
+        </div>
+
+        <!-- Search Form -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Search Completed Services</h5>
+            </div>
+            <div class="card-body">
+                <form method="GET" action="{{ url_for('boundary.csr_search_completed_services') }}">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label for="category" class="form-label">Service Type</label>
+                            <input type="text" class="form-control" id="category" name="category" 
+                                   value="{{ search_category or '' }}" placeholder="e.g., Education, Healthcare">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="date" class="form-label">Service Date</label>
+                            <input type="date" class="form-control" id="date" name="date" 
+                                   value="{{ search_date or '' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">&nbsp;</label>
+                            <div>
+                                <button type="submit" class="btn btn-primary">Search</button>
+                                <a href="{{ url_for('boundary.csr_completed_services_history') }}" 
+                                   class="btn btn-outline-secondary">Clear</a>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Results -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    {% if current_page == 'search' %}
+                        Search Results
+                    {% else %}
+                        Completed Services History
+                    {% endif %}
+                </h5>
+                <span class="badge bg-primary">{{ services|length }} services</span>
+            </div>
+            <div class="card-body">
+                {% if services %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Category</th>
+                                    <th>Service Date</th>
+                                    <th>Location</th>
+                                    <th>Urgency</th>
+                                    <th>Completed Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for service in services %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ service.title }}</strong>
+                                        <br><small class="text-muted">{{ service.description[:100] }}{% if service.description|length > 100 %}...{% endif %}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ service.category }}</span>
+                                    </td>
+                                    <td>
+                                        {% if service.preferred_date %}
+                                            {{ service.preferred_date.strftime('%Y-%m-%d') }}
+                                        {% else %}
+                                            <em>Not specified</em>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ service.location or 'Not specified' }}</td>
+                                    <td>
+                                        {% set urgency_class = {
+                                            'low': 'bg-success',
+                                            'medium': 'bg-warning', 
+                                            'high': 'bg-danger',
+                                            'urgent': 'bg-danger'
+                                        } %}
+                                        <span class="badge {{ urgency_class.get(service.urgency, 'bg-secondary') }}">
+                                            {{ service.urgency|title }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if service.updated_at %}
+                                            {{ service.updated_at.strftime('%Y-%m-%d') }}
+                                        {% else %}
+                                            <em>Unknown</em>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <p class="text-muted">No completed services found.</p>
+                        {% if current_page == 'search' %}
+                            <p>Try adjusting your search criteria.</p>
+                        {% else %}
+                            <p>You haven't completed any volunteer services yet.</p>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

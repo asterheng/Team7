@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <h2>Request Details</h2>
+    <div class="header-actions">
+        <a href="{{ url_for('boundary.csr_search_available_requests') }}" class="btn btn-secondary">← Back to Search</a>
+        <a href="{{ url_for('boundary.csr_dashboard') }}" class="btn btn-primary">📋 Dashboard</a>
+    </div>
+</div>
+
+<!-- Flash Messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <ul class="flashes">
+      {% for category, message in messages %}
+        <li class="{{ category }}">{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+
+<div class="request-detail-card {{ request.urgency }}">
+    <div class="request-header">
+        <h3>{{ request.title }}</h3>
+        <div class="request-meta">
+            <span class="status {{ request.status }}">{{ request.status|replace('_', ' ')|title }}</span>
+            <span class="urgency {{ request.urgency }}">{{ request.urgency|title }}</span>
+            <span class="category">{{ request.category }}</span>
+        </div>
+    </div>
+    
+    <div class="request-content">
+        <div class="detail-section">
+            <h4>Description</h4>
+            <p>{{ request.description }}</p>
+        </div>
+        
+        <div class="detail-grid">
+            <div class="detail-item">
+                <strong>Category:</strong>
+                <span>{{ request.category }}</span>
+            </div>
+            <div class="detail-item">
+                <strong>Urgency:</strong>
+                <span class="urgency {{ request.urgency }}">{{ request.urgency|title }}</span>
+            </div>
+            <div class="detail-item">
+                <strong>Status:</strong>
+                <span class="status {{ request.status }}">{{ request.status|replace('_', ' ')|title }}</span>
+            </div>
+            {% if request.location %}
+            <div class="detail-item">
+                <strong>Location:</strong>
+                <span>{{ request.location }}</span>
+            </div>
+            {% endif %}
+            {% if request.preferred_date %}
+            <div class="detail-item">
+                <strong>Preferred Date:</strong>
+                <span>{{ request.preferred_date }}</span>
+            </div>
+            {% endif %}
+            <div class="detail-item">
+                <strong>Created:</strong>
+                <span>{{ request.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+            </div>
+            <div class="detail-item">
+                <strong>Last Updated:</strong>
+                <span>{{ request.updated_at.strftime('%Y-%m-%d %H:%M') }}</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="request-actions">
+        <form method="post" action="{{ url_for('boundary.csr_save_to_shortlist', request_id=request.id) }}" 
+              style="display: inline;">
+            <button type="submit" class="btn btn-success">⭐ Add to Shortlist</button>
+        </form>
+        <a href="{{ url_for('boundary.csr_search_available_requests') }}" class="btn btn-secondary">Back to Search</a>
+    </div>
+</div>
+
+<style>
+.request-detail-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 2rem;
+    margin-top: 1.5rem;
+}
+
+.request-detail-card.high { border-left: 4px solid #ef4444; }
+.request-detail-card.urgent { border-left: 4px solid #dc2626; background: #fef2f2; }
+.request-detail-card.medium { border-left: 4px solid #f59e0b; }
+.request-detail-card.low { border-left: 4px solid #10b981; }
+
+.request-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.request-header h3 {
+    margin: 0;
+    flex: 1;
+    color: #1e293b;
+    font-size: 1.5rem;
+}
+
+.request-meta {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.detail-section {
+    margin-bottom: 2rem;
+}
+
+.detail-section h4 {
+    color: #1e293b;
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+}
+
+.detail-section p {
+    line-height: 1.6;
+    color: #374151;
+    background: #f8fafc;
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.detail-item strong {
+    color: #64748b;
+    font-size: 0.9rem;
+}
+
+.detail-item span {
+    color: #1e293b;
+    font-weight: 500;
+}
+
+.request-actions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding-top: 1.5rem;
+    border-top: 1px solid #e2e8f0;
+}
+
+/* Reuse status and urgency styles from previous template */
+.status, .urgency, .category { 
+    padding: 0.25rem 0.75rem; 
+    border-radius: 20px; 
+    font-size: 0.8rem; 
+    font-weight: 600;
+}
+
+.status.pending { background: #fef3c7; color: #d97706; }
+.status.approved { background: #d1fae5; color: #065f46; }
+.status.in_progress { background: #dbeafe; color: #1e40af; }
+
+.urgency.high, .urgency.urgent { background: #fecaca; color: #dc2626; }
+.urgency.medium { background: #fed7aa; color: #ea580c; }
+.urgency.low { background: #bbf7d0; color: #16a34a; }
+
+.category { background: #e0e7ff; color: #3730a3; }
+
+/* Button and flash styles same as previous template */
+</style>
+{% endblock %}

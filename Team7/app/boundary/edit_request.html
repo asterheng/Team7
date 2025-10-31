@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <h2>Edit Assistance Request</h2>
+    <div class="header-actions">
+        <a href="{{ url_for('boundary.pin_requests') }}" class="btn btn-secondary">← Back to My Requests</a>
+        <a href="{{ url_for('boundary.pin_dashboard') }}" class="btn btn-primary">📋 Dashboard</a>
+    </div>
+</div>
+
+<!-- 🆕 FLASH MESSAGES - Only show ERRORS, not success messages -->
+{% with messages = get_flashed_messages(with_categories=true, category_filter=['error']) %}
+  {% if messages %}
+    <ul class="flashes">
+      {% for category, message in messages %}
+        <li class="{{ category }}">{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+
+<form method="post">
+  <label>Request Title *
+    <input type="text" name="title" value="{{ request.title }}" required 
+           placeholder="e.g., Need transportation to hospital">
+  </label>
+  
+  <label>Category *
+    <select name="category" required>
+      <option value="">-- Select Category --</option>
+      <option value="Medical" {% if request.category == 'Medical' %}selected{% endif %}>Medical Assistance</option>
+      <option value="Transportation" {% if request.category == 'Transportation' %}selected{% endif %}>Transportation</option>
+      <option value="Food" {% if request.category == 'Food' %}selected{% endif %}>Food Delivery</option>
+      <option value="Companionship" {% if request.category == 'Companionship' %}selected{% endif %}>Companionship</option>
+      <option value="Household" {% if request.category == 'Household' %}selected{% endif %}>Household Chores</option>
+      <option value="Other" {% if request.category == 'Other' %}selected{% endif %}>Other</option>
+    </select>
+  </label>
+  
+  <label>Urgency Level
+    <select name="urgency">
+      <option value="low" {% if request.urgency == 'low' %}selected{% endif %}>Low - Can wait a few days</option>
+      <option value="medium" {% if request.urgency == 'medium' %}selected{% endif %}>Medium - Within 2-3 days</option>
+      <option value="high" {% if request.urgency == 'high' %}selected{% endif %}>High - Need within 24 hours</option>
+      <option value="urgent" {% if request.urgency == 'urgent' %}selected{% endif %}>Urgent - Immediate need</option>
+    </select>
+  </label>
+  
+  <label>Description *
+    <textarea name="description" rows="5" required 
+              placeholder="Please describe your request in detail...">{{ request.description }}</textarea>
+  </label>
+  
+  <label>Location
+    <input type="text" name="location" value="{{ request.location or '' }}" 
+           placeholder="Your address or meeting point">
+  </label>
+  
+  <label>Preferred Date
+    <input type="date" name="preferred_date" value="{{ request.preferred_date or '' }}">
+  </label>
+  
+  <div class="request-meta">
+    <p><strong>Current Status:</strong> <span class="status {{ request.status }}">{{ request.status|replace('_', ' ')|title }}</span></p>
+    
+    <!-- 🆕 REMOVED reactivation notice since we're not allowing suspended request editing -->
+    <p><strong>Created:</strong> {{ request.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+    <p><strong>Last Updated:</strong> {{ request.updated_at.strftime('%Y-%m-%d %H:%M') }}</p>
+  </div>
+  
+  <div class="actions">
+    <button type="submit" class="btn btn-primary">Update Request</button>
+    <a href="{{ url_for('boundary.pin_requests') }}" class="btn btn-secondary">Cancel</a>
+  </div>
+</form>
+
+<style>
+/* Reuse your existing styles from create_request.html */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+    border-bottom: 2px solid #e5e7eb;
+    padding-bottom: 1rem;
+}
+
+.request-meta {
+    background: #f8fafc;
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    margin: 1rem 0;
+}
+
+.request-meta p {
+    margin: 0.5rem 0;
+    color: #64748b;
+}
+
+/* Your existing button and form styles from create_request.html */
+.btn {
+    display: inline-block !important;
+    padding: 0.6rem 1.2rem !important;
+    border-radius: 8px !important;
+    text-decoration: none !important;
+    font-weight: 600 !important;
+    border: none !important;
+    cursor: pointer !important;
+    font-size: 0.9rem !important;
+    text-align: center !important;
+    transition: background 0.2s !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    color: white !important;
+}
+
+.btn-primary { background: #2563eb !important; }
+.btn-secondary { background: #6b7280 !important; }
+
+.btn:hover { filter: brightness(1.1); }
+
+.actions { 
+    margin-top: 1.5rem; 
+    display: flex; 
+    gap: 1rem; 
+}
+
+/* Status badges */
+.status { 
+    padding: 0.25rem 0.75rem; 
+    border-radius: 20px; 
+    font-size: 0.8rem; 
+    font-weight: 600;
+    display: inline-block;
+}
+.status.pending { background: #fef3c7; color: #d97706; }
+.status.approved { background: #d1fae5; color: #065f46; }
+.status.in_progress { background: #dbeafe; color: #1e40af; }
+.status.completed { background: #dcfce7; color: #166534; }
+.status.suspended { background: #fef3c7; color: #d97706; }
+
+/* Form styles */
+label { display: block; margin-bottom: 1rem; }
+input, select, textarea {
+    width: 100%; 
+    max-width: 560px; 
+    padding: 0.6rem; 
+    border: 1px solid #e5e7eb; 
+    border-radius: 10px; 
+    font-family: inherit; 
+    margin-top: 0.25rem;
+}
+</style>
+{% endblock %}

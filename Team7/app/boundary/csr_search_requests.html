@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <h2>Search Available Requests</h2>
+    <div class="header-actions">
+        <a href="{{ url_for('boundary.csr_dashboard') }}" class="btn btn-secondary">← Dashboard</a>
+        <a href="{{ url_for('boundary.csr_search_shortlisted_requests') }}" class="btn btn-primary">📋 My Shortlist</a>
+    </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <ul class="flashes">
+      {% for category, message in messages %}
+        <li class="{{ category }}">{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+
+<!-- Search Form -->
+<div class="search-section">
+    <form method="get" class="search-form">
+        <input type="text" name="q" placeholder="Search by title, description, or category..." 
+               value="{{ search_term or '' }}" class="search-input">
+        
+        <select name="category">
+            <option value="">All Categories</option>
+            <option value="Medical" {% if category == 'Medical' %}selected{% endif %}>Medical</option>
+            <option value="Transportation" {% if category == 'Transportation' %}selected{% endif %}>Transportation</option>
+            <option value="Food" {% if category == 'Food' %}selected{% endif %}>Food</option>
+            <option value="Companionship" {% if category == 'Companionship' %}selected{% endif %}>Companionship</option>
+            <option value="Household" {% if category == 'Household' %}selected{% endif %}>Household</option>
+            <option value="Other" {% if category == 'Other' %}selected{% endif %}>Other</option>
+        </select>
+        
+        <select name="urgency">
+            <option value="">Any Urgency</option>
+            <option value="low" {% if urgency == 'low' %}selected{% endif %}>Low</option>
+            <option value="medium" {% if urgency == 'medium' %}selected{% endif %}>Medium</option>
+            <option value="high" {% if urgency == 'high' %}selected{% endif %}>High</option>
+            <option value="urgent" {% if urgency == 'urgent' %}selected{% endif %}>Urgent</option>
+        </select>
+        
+        <button type="submit" class="btn btn-primary">Search</button>
+        
+        {% if search_term or category or urgency %}
+            <a href="{{ url_for('boundary.csr_search_available_requests') }}" class="btn btn-secondary">Clear</a>
+        {% endif %}
+    </form>
+</div>
+
+{% if requests %}
+<div class="requests-list">
+    {% for request in requests %}
+    <div class="request-card {{ request.urgency }}">
+        <div class="request-header">
+            <h3>{{ request.title }}</h3>
+            <div class="request-meta">
+                <span class="status {{ request.status }}">{{ request.status|replace('_', ' ')|title }}</span>
+                <span class="urgency {{ request.urgency }}">{{ request.urgency|title }}</span>
+                <span class="category">{{ request.category }}</span>
+            </div>
+        </div>
+        
+        <p class="description">{{ request.description }}</p>
+        
+        <div class="request-details">
+            {% if request.location %}
+            <p><strong>Location:</strong> {{ request.location }}</p>
+            {% endif %}
+            {% if request.preferred_date %}
+            <p><strong>Preferred Date:</strong> {{ request.preferred_date }}</p>
+            {% endif %}
+            <p><strong>Created:</strong> {{ request.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+        </div>
+        
+        <div class="request-actions">
+            <a href="{{ url_for('boundary.csr_view_request_details', request_id=request.id) }}" 
+               class="btn btn-primary">View Details</a>
+            
+            <form method="post" action="{{ url_for('boundary.csr_save_to_shortlist', request_id=request.id) }}" 
+                  style="display: inline;">
+                <button type="submit" class="btn btn-success">⭐ Add to Shortlist</button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="no-requests">
+    {% if search_term or category or urgency %}
+        <p>No available requests found matching your criteria.</p>
+        <a href="{{ url_for('boundary.csr_search_available_requests') }}" class="btn btn-primary">View All Requests</a>
+    {% else %}
+        <p>No available requests at the moment.</p>
+        <p>Check back later for new opportunities.</p>
+    {% endif %}
+</div>
+{% endif %}
+
+<style>
+.search-section {
+    margin: 1.5rem 0;
+    padding: 1.5rem;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+.search-form {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.search-input, .search-form select {
+    flex: 1;
+    min-width: 200px;
+    padding: 0.75rem 1rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 1rem;
+    background: white;
+}
+
+.search-input:focus, .search-form select:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    outline: none;
+}
+
+/* Reuse your existing request card styles from pin_requests.html */
+.requests-list { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 1rem; 
+    margin-top: 1.5rem; 
+}
+
+.request-card { 
+    background: white; 
+    border: 1px solid #e2e8f0; 
+    border-radius: 12px; 
+    padding: 1.5rem; 
+    position: relative;
+}
+
+.request-card.high { border-left: 4px solid #ef4444; }
+.request-card.urgent { border-left: 4px solid #dc2626; background: #fef2f2; }
+.request-card.medium { border-left: 4px solid #f59e0b; }
+.request-card.low { border-left: 4px solid #10b981; }
+
+.request-header { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: flex-start; 
+    margin-bottom: 1rem; 
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.request-header h3 { 
+    margin: 0; 
+    flex: 1; 
+    color: #1e293b; 
+    font-size: 1.25rem;
+}
+
+.request-meta { 
+    display: flex; 
+    gap: 0.5rem; 
+    flex-wrap: wrap; 
+}
+
+.status, .urgency, .category { 
+    padding: 0.25rem 0.75rem; 
+    border-radius: 20px; 
+    font-size: 0.8rem; 
+    font-weight: 600;
+}
+
+.status.pending { background: #fef3c7; color: #d97706; }
+.status.approved { background: #d1fae5; color: #065f46; }
+.status.in_progress { background: #dbeafe; color: #1e40af; }
+
+.urgency.high, .urgency.urgent { background: #fecaca; color: #dc2626; }
+.urgency.medium { background: #fed7aa; color: #ea580c; }
+.urgency.low { background: #bbf7d0; color: #16a34a; }
+
+.category { background: #e0e7ff; color: #3730a3; }
+
+.description { 
+    color: #1e293b; 
+    margin-bottom: 1rem; 
+    line-height: 1.5; 
+}
+
+.request-details p { 
+    margin: 0.25rem 0; 
+    color: #64748b; 
+    font-size: 0.9rem; 
+}
+
+.request-actions { 
+    margin-top: 1rem; 
+    display: flex; 
+    gap: 0.5rem; 
+    flex-wrap: wrap;
+}
+
+.no-requests { 
+    text-align: center; 
+    padding: 3rem; 
+    color: #64748b; 
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+/* Button styles */
+.btn {
+    display: inline-block !important;
+    padding: 0.6rem 1.2rem !important;
+    border-radius: 8px !important;
+    text-decoration: none !important;
+    font-weight: 600 !important;
+    border: 2px solid !important;
+    cursor: pointer !important;
+    font-size: 0.9rem !important;
+    text-align: center !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    color: white !important;
+}
+
+.btn-primary { background: #2563eb !important; border-color: #1d4ed8 !important; }
+.btn-secondary { background: #6b7280 !important; border-color: #4b5563 !important; }
+.btn-success { background: #10b981 !important; border-color: #059669 !important; }
+
+.btn:hover { filter: brightness(1.1); }
+
+
+.flashes {
+    list-style: none;
+    padding: 0;
+    margin: 1rem 0;
+    text-align: center;
+}
+
+.flashes li {
+    display: inline-block;
+    padding: 0.8rem 1.5rem;
+    border-radius: 10px;
+    margin: 0.25rem;
+    font-weight: 500;
+}
+
+.flashes .ok { background: #d1fae5; color: #065f46; border: 1px solid #10b981; }
+.flashes .error { background: #fee2e2; color: #991b1b; border: 1px solid #ef4444; }
+.flashes .info { background: #dbeafe; color: #1e40af; border: 1px solid #3b82f6; }
+
+@media (max-width: 768px) {
+    .search-form { flex-direction: column; align-items: stretch; }
+    .search-input, .search-form select { min-width: auto; }
+    .request-header { flex-direction: column; }
+    .request-actions { flex-direction: column; }
+    .request-actions .btn { width: 100%; text-align: center; }
+}
+</style>
+{% endblock %}

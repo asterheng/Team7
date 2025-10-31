@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Admin Dashboard</h2>
+
+<div class="welcome-section">
+  <p>Welcome, <strong>{{ session.user_name }}</strong>!</p>
+  <p>You are logged in as an <strong>Administrator</strong>. Use the tools below to manage users and profiles.</p>
+</div>
+
+<!-- Action grid -->
+<div class="dashboard-actions">
+  <!-- USERS -->
+  <div class="action-card">
+    <h3>👥 Users</h3>
+    <p>Create, list/search, update, and suspend users.</p>
+    <div class="card-actions">
+      <a href="{{ url_for('boundary.create_user') }}" class="dashboard-btn">Create User</a>
+      <a href="{{ url_for('boundary.list_users') }}" class="dashboard-btn">List Users</a>
+    </div>
+  </div>
+
+  <!-- PROFILES -->
+  <div class="action-card">
+    <h3>🛡️ Profiles</h3>
+    <p>Create, list/search, update, and suspend profiles.</p>
+    <div class="card-actions">
+      <a href="{{ url_for('boundary.create_profile') }}" class="dashboard-btn">Create Profile</a>
+      <a href="{{ url_for('boundary.list_profiles') }}" class="dashboard-btn">List Profiles</a>
+    </div>
+  </div>
+
+<style>
+.dashboard-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+.action-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+  }
+.action-card h3 {
+  margin-top: 0;
+  color: #1e293b;
+}
+.action-card p {
+  color: #64748b;
+  margin-bottom: 1rem;
+}
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}
+.dashboard-btn {
+  display: inline-block;
+  background: #2563eb;
+  color: white;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  border: 2px solid #1d4ed8;
+  transition: background 0.2s;
+}
+.dashboard-btn:hover {
+  background: #1d4ed8;
+  color: white;
+}
+.welcome-section {
+  background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%);
+  color: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+}
+.welcome-section p {
+  margin: 0.5rem 0;
+  font-size: 1.1rem;
+}
+.quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  margin-top: 1.25rem;
+}
+.search-form {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.search-form input {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  min-width: 260px;
+}
+.search-form button {
+  background: #334155;
+  color: white;
+  padding: 0.5rem 0.9rem;
+  border-radius: 8px;
+  border: 0;
+  font-weight: 600;
+  cursor: pointer;
+}
+.search-form button:hover {
+  background: #1f2937;
+}
+</style>
+{% endblock %}

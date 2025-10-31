@@ -4,9 +4,20 @@
     <h2>{% if title %}{{ title }}{% else %}My Assistance Requests{% endif %}</h2>
     <div class="header-actions">
         <a href="{{ url_for('boundary.pin_dashboard') }}" class="btn btn-secondary">← Back to Dashboard</a>
-        <a href="{{ url_for('boundary.create_request') }}" class="btn btn-primary"> New Request</a>
+        <a href="{{ url_for('boundary.create_request') }}" class="btn btn-primary">➕ New Request</a>
     </div>
 </div>
+
+<!-- 🆕 FLASH MESSAGES - Show ALL messages including edit success -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <ul class="flashes">
+      {% for category, message in messages %}
+        <li class="{{ category }}">{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
 
 <!-- SEARCH FORM -->
 <div class="search-section">
@@ -27,7 +38,6 @@
         {% endif %}
     </form>
 </div>
-
 
 {% if requests %}
 <div class="requests-list">
@@ -52,16 +62,28 @@
       <p><strong>Preferred Date:</strong> {{ request.preferred_date }}</p>
       {% endif %}
       <p><strong>Created:</strong> {{ request.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+      <p><strong>Last Updated:</strong> {{ request.updated_at.strftime('%Y-%m-%d %H:%M') }}</p>
     </div>
     
-    {% if request.status not in ['completed', 'suspended'] %}
     <div class="request-actions">
+      <!-- 🆕 EDIT BUTTON - Only for ACTIVE requests -->
+      {% if request.status in ['pending', 'approved', 'in_progress'] %}
+      <a href="{{ url_for('boundary.edit_request', request_id=request.id) }}" 
+         class="btn btn-primary">✏️ Edit</a>
+      {% endif %}
+      
+      <!-- SUSPEND BUTTON - Only for active requests -->
+      {% if request.status in ['pending', 'approved', 'in_progress'] %}
       <form method="post" action="{{ url_for('boundary.suspend_request', request_id=request.id) }}" 
-            onsubmit="return confirm('Are you sure you want to suspend this request? You can view it in your history.');" style="display: inline;">
-        <button type="submit" class="btn btn-warning">Suspend Request</button>
+            onsubmit="return confirm('Are you sure you want to suspend this request? You can view it in your history.');" 
+            style="display: inline;">
+        <button type="submit" class="btn btn-warning">⏸️ Suspend</button>
       </form>
+      {% endif %}
+      <!-- Add this to the request-actions div in pin_requests.html -->
+      <a href="{{ url_for('boundary.pin_request_analytics', request_id=request.id) }}" 
+         class="btn btn-info">📊 Analytics</a>
     </div>
-    {% endif %}
   </div>
   {% endfor %}
 </div>
@@ -264,6 +286,7 @@
     margin-top: 1rem; 
     display: flex; 
     gap: 0.5rem; 
+    flex-wrap: wrap;
 }
 
 .no-requests { 
@@ -314,7 +337,16 @@ a, button, .btn, input, select, textarea {
     .request-meta {
         justify-content: flex-start;
     }
+    
+    .request-actions {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .request-actions .btn {
+        width: 100%;
+        text-align: center;
+    }
 }
 </style>
 {% endblock %}
-

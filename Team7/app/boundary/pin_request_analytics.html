@@ -1,0 +1,210 @@
+<!-- [file name]: pin_request_analytics.html -->
+<!-- [file content begin] -->
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <h2>Request Analytics: {{ request.title }}</h2>
+    <div class="header-actions">
+        <a href="{{ url_for('boundary.pin_requests') }}" class="btn btn-secondary">← Back to My Requests</a>
+        <a href="{{ url_for('boundary.pin_dashboard') }}" class="btn btn-primary">📋 Dashboard</a>
+    </div>
+</div>
+
+<div class="analytics-dashboard">
+    <div class="analytics-cards">
+        <div class="analytics-card">
+            <div class="analytics-icon">👁️</div>
+            <div class="analytics-number">{{ view_count }}</div>
+            <div class="analytics-label">Total Views</div>
+            <div class="analytics-description">Number of times CSR representatives have viewed your request</div>
+        </div>
+        
+        <div class="analytics-card">
+            <div class="analytics-icon">⭐</div>
+            <div class="analytics-number">{{ shortlist_count }}</div>
+            <div class="analytics-label">Shortlisted</div>
+            <div class="analytics-description">Number of times CSR representatives have saved your request to their shortlist</div>
+        </div>
+    </div>
+    
+    <div class="request-details">
+        <h3>Request Details</h3>
+        <div class="detail-grid">
+            <div class="detail-item">
+                <strong>Title:</strong>
+                <span>{{ request.title }}</span>
+            </div>
+            <div class="detail-item">
+                <strong>Category:</strong>
+                <span>{{ request.category }}</span>
+            </div>
+            <div class="detail-item">
+                <strong>Status:</strong>
+                <span class="status {{ request.status }}">{{ request.status|replace('_', ' ')|title }}</span>
+            </div>
+            <div class="detail-item">
+                <strong>Urgency:</strong>
+                <span class="urgency {{ request.urgency }}">{{ request.urgency|title }}</span>
+            </div>
+            <div class="detail-item">
+                <strong>Created:</strong>
+                <span>{{ request.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="analytics-actions">
+        <a href="{{ url_for('boundary.pin_requests') }}" class="btn btn-secondary">Back to Requests</a>
+        {% if request.status in ['pending', 'approved', 'in_progress'] %}
+        <a href="{{ url_for('boundary.edit_request', request_id=request.id) }}" class="btn btn-primary">✏️ Edit Request</a>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.analytics-dashboard {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.analytics-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.analytics-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.analytics-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.analytics-number {
+    font-size: 3rem;
+    font-weight: bold;
+    color: #1e293b;
+    margin-bottom: 0.5rem;
+}
+
+.analytics-label {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.5rem;
+}
+
+.analytics-description {
+    color: #64748b;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.request-details {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.request-details h3 {
+    margin-top: 0;
+    color: #1e293b;
+    margin-bottom: 1rem;
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.detail-item strong {
+    color: #64748b;
+    font-size: 0.9rem;
+}
+
+.detail-item span {
+    color: #1e293b;
+    font-weight: 500;
+}
+
+.analytics-actions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+/* Reuse your existing status and button styles */
+.status, .urgency { 
+    padding: 0.25rem 0.75rem; 
+    border-radius: 20px; 
+    font-size: 0.8rem; 
+    font-weight: 600;
+    display: inline-block;
+}
+
+.status.pending { background: #fef3c7; color: #d97706; }
+.status.approved { background: #d1fae5; color: #065f46; }
+.status.in_progress { background: #dbeafe; color: #1e40af; }
+.status.completed { background: #dcfce7; color: #166534; }
+
+.urgency.high, .urgency.urgent { background: #fecaca; color: #dc2626; }
+.urgency.medium { background: #fed7aa; color: #ea580c; }
+.urgency.low { background: #bbf7d0; color: #16a34a; }
+
+.btn {
+    display: inline-block !important;
+    padding: 0.75rem 1.5rem !important;
+    border-radius: 8px !important;
+    text-decoration: none !important;
+    font-weight: 600 !important;
+    border: 2px solid !important;
+    cursor: pointer !important;
+    font-size: 0.9rem !important;
+    text-align: center !important;
+    color: white !important;
+    transition: all 0.2s !important;
+}
+
+.btn-primary { background: #2563eb !important; border-color: #1d4ed8 !important; }
+.btn-secondary { background: #6b7280 !important; border-color: #4b5563 !important; }
+
+.btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+
+@media (max-width: 768px) {
+    .analytics-cards {
+        grid-template-columns: 1fr;
+    }
+    
+    .detail-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .analytics-actions {
+        flex-direction: column;
+    }
+    
+    .analytics-actions .btn {
+        width: 100%;
+        text-align: center;
+    }
+}
+</style>
+{% endblock %}
+<!-- [file content end] -->

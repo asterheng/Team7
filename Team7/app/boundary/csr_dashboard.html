@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <h2>CSR Representative Dashboard</h2>
+    <p>Welcome, {{ session.user_name }}! Manage volunteer opportunities for your company.</p>
+</div>
+
+<!-- Flash Messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <ul class="flashes">
+      {% for category, message in messages %}
+        <li class="{{ category }}">{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+
+<div class="dashboard-actions">
+    <div class="action-card">
+        <h3>🔍 Search Requests</h3>
+        <p>Find available service requests matching your company's capabilities</p>
+        <a href="{{ url_for('boundary.csr_search_available_requests') }}" class="btn btn-primary">Search Requests</a>
+    </div>
+    
+    <div class="action-card">
+        <h3>📋 My Shortlist</h3>
+        <p>View and manage your saved requests</p>
+        <a href="{{ url_for('boundary.csr_search_shortlisted_requests') }}" class="btn btn-primary">View Shortlist</a>
+    </div>
+    
+    <!-- 🆕 NEW: Completed Services Card -->
+    <div class="action-card">
+        <h3>✅ Completed Services</h3>
+        <p>View and search your completed volunteer services history</p>
+        <div class="action-buttons">
+            <a href="{{ url_for('boundary.csr_completed_services_history') }}" class="btn btn-primary">View History</a>
+            <a href="{{ url_for('boundary.csr_search_completed_services') }}" class="btn btn-outline-primary">Search Services</a>
+        </div>
+    </div>
+</div>
+
+<style>
+.dashboard-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+}
+
+.action-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.action-card h3 {
+    margin-top: 0;
+    color: #1e293b;
+    margin-bottom: 1rem;
+}
+
+.action-card p {
+    color: #64748b;
+    margin-bottom: 1.5rem;
+    flex-grow: 1;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.action-buttons .btn {
+    flex: 1;
+    min-width: 120px;
+    max-width: 140px;
+}
+
+/* Flash message styles */
+.flashes {
+    list-style: none;
+    padding: 0;
+    margin: 1rem 0;
+    text-align: center;
+}
+
+.flashes li {
+    display: inline-block;
+    padding: 0.8rem 1.5rem;
+    border-radius: 10px;
+    margin: 0.25rem;
+    font-weight: 500;
+}
+
+.flashes .ok {
+    background: #d1fae5;
+    color: #065f46;
+    border: 1px solid #10b981;
+}
+
+.flashes .error {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #ef4444;
+}
+
+.flashes .info {
+    background: #dbeafe;
+    color: #1e40af;
+    border: 1px solid #3b82f6;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .dashboard-actions {
+        grid-template-columns: 1fr;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+    }
+    
+    .action-buttons .btn {
+        max-width: 100%;
+    }
+}
+</style>
+{% endblock %}
