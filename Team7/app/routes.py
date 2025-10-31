@@ -494,6 +494,11 @@ def create_request():
     if session.get("profile_name", "").lower() != "pin":  
         flash("Access denied. PIN profile required.", "error")
         return redirect(url_for("boundary.on_login"))
+     
+    # 🔹 Load all active categories
+    # 🔹 Get active categories (list[ServiceCategory])
+    res = ListServiceCategoryController().ListServiceCategory(page=None)  # returns {"ok":..., "data":[...]}
+    categories = [c for c in res.get("data", []) if not getattr(c, "is_suspended", False)]
     
     if request.method == 'POST':
         # BOUNDARY: Handle ALL user input validation
@@ -527,7 +532,7 @@ def create_request():
         if errors:
             for e in errors:
                 flash(e, "err")
-            return render_template('create_request.html'), 400
+            return render_template('create_request.html', categories=categories), 400
         
         # Prepare clean data for controller
         request_data = {
@@ -551,7 +556,7 @@ def create_request():
         else:
             flash(result, "err")  
     
-    return render_template('create_request.html')
+    return render_template('create_request.html', categories=categories)
 
 
 @bp.route('/pin/requests')
