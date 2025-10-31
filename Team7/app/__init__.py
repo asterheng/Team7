@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, request, make_response, current_app
 from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
@@ -13,7 +13,22 @@ def create_app():
 
     from .routes import bp as boundary_bp
     app.register_blueprint(boundary_bp)
-
+    
+    @app.after_request
+    def add_no_cache_headers(response):
+        # Don’t cache dynamic pages
+        if not request.path.startswith("/static/"):
+            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+        return response
+    
+    @app.context_processor
+    def utility_processor():
+        def has_endpoint(name: str) -> bool:
+            return name in current_app.view_functions
+        return {"has_endpoint": has_endpoint}
+        
     return app
 
 

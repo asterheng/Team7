@@ -30,7 +30,22 @@ from .control.ServiceCategoryController import (
 from .control.PINControllers import (
     PINCreateRequestController, 
     PINViewRequestsController, PINSuspendRequestController,
-    PINViewHistoryController, PINSearchRequestsController
+    PINViewHistoryController, PINSearchRequestsController,
+    PINUpdateRequestController, PINRequestViewCountController,
+    PINRequestShortlistCountController, 
+    PINCompletedMatchesSearchController,
+    PINCompletedMatchesHistoryController,
+)
+
+from .control.CSRControllers import (
+    CSRSearchAvailableRequestsController,
+    CSRViewRequestDetailsController,
+    CSRSaveToShortlistController,
+    CSRSearchShortlistedRequestsController,
+    CSRViewShortlistedRequestController,
+    CSRRemoveFromShortlistController,
+    CSRViewCompletedServicesController,
+    CSRSearchCompletedServicesController
 )
 
 # -----------------------------------------------------------------------------
@@ -79,12 +94,15 @@ def on_login():
         session["profile_name"] = user.profile.name
 
         profile_name = user.profile.name.lower()
+        print(profile_name)
         if profile_name == "admin":
-            return redirect(url_for('boundary.list_users'))
+            return redirect(url_for('boundary.admin_dashboard'))
         elif profile_name == "platform management":
             return redirect(url_for('boundary.list_service_categories'))
         elif profile_name == "pin":
             return redirect(url_for('boundary.pin_dashboard'))
+        elif profile_name == "csr rep": 
+            return redirect(url_for('boundary.csr_dashboard'))
         else:
             return redirect(url_for('boundary.home'))
 
@@ -102,6 +120,18 @@ def click_logout():
     flash("Signed out successfully.", "ok")
     return redirect(url_for("boundary.on_login"))
 
+
+# -----------------------------------------------------------------------------
+# User Admin dashboard
+# -----------------------------------------------------------------------------
+@bp.route('/admin/dashboard')
+@login_required
+def admin_dashboard():
+    role = (session.get("profile_name") or "").lower()
+    if role != "admin":
+        flash("You do not have permission to access the admin dashboard.", "error")
+        return redirect(url_for('boundary.home'))
+    return render_template("AdminDashboard.html")
 
 # -----------------------------------------------------------------------------
 # Home → Login
@@ -496,7 +526,7 @@ def create_request():
         
         if errors:
             for e in errors:
-                flash(e, "create_request:err")
+                flash(e, "err")
             return render_template('create_request.html'), 400
         
         # Prepare clean data for controller
@@ -515,14 +545,14 @@ def create_request():
         result = ctrl.create_request(request_data)
         
         # BOUNDARY: Handle display to user
-        if result['success']:
-            flash("Request created successfully.", "create_request:ok")
+        if result == "success":
+            flash("Request created successfully.", "ok")
             return redirect(url_for('boundary.pin_requests'))
         else:
-            for e in result['errors']:
-                flash(e, "create_request:err")
+            flash(result, "err")  
     
     return render_template('create_request.html')
+
 
 @bp.route('/pin/requests')
 @login_required
@@ -537,13 +567,12 @@ def pin_requests():
     result = ctrl.get_active_requests(session.get('user_id'))
     
     # BOUNDARY: Handle display
-    if result['success']:
-        requests = result['data']
-    else:
-        requests = []
-        for e in result['errors']:
-            flash(e, "error")
-    
+    if type(result) == str:
+    	flash(result, "err")
+    	requests = []
+    else:  
+    	requests = result  #success with request list
+
     return render_template('pin_requests.html', requests=requests, current_page='active')
 
 
@@ -560,12 +589,11 @@ def request_history():
     result = ctrl.get_request_history(session.get('user_id'))
     
     # BOUNDARY: Handle display
-    if result['success']:
-        requests = result['data']
-    else:
-        requests = []
-        for e in result['errors']:
-            flash(e, "error")
+    if type(result) == str:
+    	flash(result, "err")
+    	requests = []
+    else:  
+    	requests = result  #success with request list
     
     return render_template('pin_requests.html', requests=requests, title="Request History", current_page='history')
 
@@ -584,11 +612,10 @@ def suspend_request(request_id):
     result = ctrl.suspend_request(request_id, session.get('user_id'))
     
     # BOUNDARY: Handle display to user
-    if result['success']:
-        flash("Request suspended successfully.", "suspend_request:ok")
+    if result == "success":
+        flash("Request suspended.", "suspend_request:ok")
     else:
-        for e in result['errors']:
-            flash(e, "suspend_request:err")
+        flash(result, "suspend_request:err")  # Show database error
     
     return redirect(url_for('boundary.pin_requests'))
 
@@ -620,30 +647,434 @@ def search_requests():
     result = ctrl.search_requests(pin_id, search_term)
     
     # BOUNDARY: Handle user display
-    if result['success']:
-        requests = result['data']
-        if not requests:
-            flash(f"No requests found for '{search_term}'", "info")
+    if isinstance(result, str):  #  String = error
+        flash(f"No requests found for '{search_term}'", "info")
+        requests = []
+    else:  # storing request object
+        requests = result
+       
+    
+    # Stay on the same page type (history vs active)
+    template_data = {
+        'requests': requests, 
+        'search_term': search_term,
+        'current_page': current_page
+    }
+    
+    # Set appropriate title based on page context
+    if current_page == 'history':
+        template_data['title'] = f"Search Results for '{search_term}' - History"
+    else:
+        template_data['title'] = f"Search Results for '{search_term}'"
+    
+    return render_template('pin_requests.html', **template_data)
+
+
+
+
+
+@bp.route('/pin/requests/<int:request_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_request(request_id):
+    # BOUNDARY: User interaction ONLY
+    if session.get("profile_name", "").lower() != "pin": 
+        flash("Access denied. PIN profile required.", "error")
+        return redirect(url_for("boundary.on_login"))
+    
+    pin_id = session.get('user_id')
+    ctrl = PINUpdateRequestController()
+    
+    # GET: Get request data through controller for display
+    if request.method == 'GET':
+        result = ctrl.get_request_for_display(request_id, pin_id)
         
-        # Stay on the same page type (history vs active)
-        template_data = {
-            'requests': requests, 
-            'search_term': search_term,
-            'current_page': current_page
+        if isinstance(result, str):
+            if result == "not_found":
+                flash("Request not found or access denied.", "error")
+            elif result == "can_only_edit_active":
+                flash("Can only edit active requests (pending, approved, or in progress).", "error")
+            else:
+                flash("Error loading request.", "error")
+            return redirect(url_for('boundary.pin_requests'))
+        
+        # BOUNDARY: Render template with actual request data
+        return render_template('edit_request.html', request=result)
+    
+    # POST: Handle form submission
+    if request.method == 'POST':
+        title = (request.form.get('title', '') or '').strip()
+        description = (request.form.get('description', '') or '').strip()
+        category = (request.form.get('category', '') or '').strip()
+        
+        errors = []
+        if not title: errors.append("Title is required.")
+        if not description: errors.append("Description is required.")
+        if not category: errors.append("Category is required.")
+        if len(title) < 5: errors.append("Title must be at least 5 characters.")
+        if len(description) < 10: errors.append("Description must be at least 10 characters.")
+        
+        preferred_date = None
+        date_str = request.form.get('preferred_date', '')
+        if date_str:
+            try:
+                preferred_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+                if preferred_date < datetime.now().date():
+                    errors.append("Preferred date cannot be in the past.")
+            except ValueError:
+                errors.append("Invalid date format. Use YYYY-MM-DD.")
+        
+        if errors:
+            for e in errors:
+                flash(e, "err")
+            # Get current data through controller for re-rendering
+            current_result = ctrl.get_request_for_display(request_id, pin_id)
+            if isinstance(current_result, str):
+                return redirect(url_for('boundary.pin_requests'))
+            return render_template('edit_request.html', request=current_result), 400
+        
+        # BOUNDARY: Prepare data for controller
+        update_data = {
+            'title': title,
+            'description': description,
+            'category': category,
+            'urgency': request.form.get('urgency', 'medium'),
+            'location': (request.form.get('location', '') or '').strip(),
+            'preferred_date': preferred_date
         }
         
-        # Set appropriate title based on page context
-        if current_page == 'history':
-            template_data['title'] = f"Search Results for '{search_term}' - History"
-        else:
-            template_data['title'] = f"Search Results for '{search_term}'"
+        # BOUNDARY: Call controller
+        result = ctrl.update_request(request_id, pin_id, update_data)
         
-        return render_template('pin_requests.html', **template_data)
-    else:
-        for error in result['errors']:
-            flash(error, "error")
-        # Redirect back to appropriate page
-        if current_page == 'history':
-            return redirect(url_for('boundary.request_history'))
-        else:
+        # BOUNDARY: Handle user feedback
+        if result == "success":
+            flash("Request updated successfully!", "ok")
             return redirect(url_for('boundary.pin_requests'))
+        elif result == "can_only_update_active":
+            flash("Can only update active requests.", "error")
+        else:
+            flash("Error updating request.", "error")
+            
+        return redirect(url_for('boundary.pin_requests'))
+        
+@bp.route('/pin/requests/<int:request_id>/analytics')
+@login_required
+def pin_request_analytics(request_id):
+    #BOUNDARY for: As PIN, I want to see how many times my request has been viewed and shortlisted#
+    if session.get("profile_name", "").lower() != "pin":  
+        flash("Access denied. PIN profile required.", "error")
+        return redirect(url_for("boundary.on_login"))
+    
+    pin_id = session.get('user_id')
+    
+    # BOUNDARY: Get request details for context
+    request_ctrl = PINUpdateRequestController()
+    request = request_ctrl.get_request_for_display(request_id, pin_id)
+    
+    if isinstance(request, str):
+        if request == "not_found":
+            flash("Request not found or access denied.", "error")
+        elif request == "can_only_edit_active":
+            flash("Cannot view analytics for this request.", "error")
+        else:
+            flash("Error loading request details.", "error")
+        return redirect(url_for('boundary.pin_requests'))
+    
+    # BOUNDARY: Call specific controllers for view and shortlist counts
+    view_ctrl = PINRequestViewCountController()
+    shortlist_ctrl = PINRequestShortlistCountController()
+    
+    view_count = view_ctrl.get_view_count(request_id, pin_id)
+    shortlist_count = shortlist_ctrl.get_shortlist_count(request_id, pin_id)
+    
+    # BOUNDARY: Handle errors
+    if isinstance(view_count, str) or isinstance(shortlist_count, str):
+        flash("Error loading analytics data.", "error")
+        return redirect(url_for('boundary.pin_requests'))
+    
+    return render_template('pin_request_analytics.html', 
+                         request=request, 
+                         view_count=view_count,
+                         shortlist_count=shortlist_count)
+
+# 🆕 NEW: PIN Completed Matches History (User Story 4)
+@bp.route('/pin/matches/completed/history')
+@login_required
+def pin_completed_matches_history():
+    #BOUNDARY for: As PIN, I want to view the history of my completed matches#
+    if session.get("profile_name", "").lower() != "pin":  
+        flash("Access denied. PIN profile required.", "error")
+        return redirect(url_for("boundary.on_login"))
+    
+    pin_id = session.get('user_id')
+    
+    # BOUNDARY: Call specific controller
+    ctrl = PINCompletedMatchesHistoryController()
+    result = ctrl.get_completed_matches_history(pin_id)
+    
+    # BOUNDARY: Handle display
+    if isinstance(result, str):
+        flash("Error loading completed matches history.", "error")
+        matches = []
+    else:
+        matches = result
+    
+    return render_template('pin_completed_matches.html', 
+                         matches=matches,
+                         search_category=None,
+                         search_date=None)
+
+# 🆕 NEW: PIN Search Completed Matches (User Story 3)
+@bp.route('/pin/matches/completed/search')
+@login_required
+def pin_search_completed_matches():
+    #BOUNDARY for: As PIN, I want to search my completed matches by service type and date#
+    if session.get("profile_name", "").lower() != "pin":  
+        flash("Access denied. PIN profile required.", "error")
+        return redirect(url_for("boundary.on_login"))
+    
+    pin_id = session.get('user_id')
+    
+    # BOUNDARY: Get search parameters
+    search_category = request.args.get('category', '').strip()
+    search_date = request.args.get('date', '').strip()
+    
+    # BOUNDARY: Validate date format
+    parsed_date = None
+    if search_date:
+        try:
+            parsed_date = datetime.strptime(search_date, '%Y-%m-%d').date()
+        except ValueError:
+            flash("Invalid date format. Use YYYY-MM-DD.", "error")
+            search_date = ""
+    
+    # BOUNDARY: Call specific controller
+    ctrl = PINCompletedMatchesSearchController()
+    result = ctrl.search_completed_matches(pin_id, search_category, parsed_date)
+    
+    # BOUNDARY: Handle display
+    if isinstance(result, str):
+        flash("Error searching completed matches.", "error")
+        matches = []
+    else:
+        matches = result
+    
+    return render_template('pin_completed_matches.html', 
+                         matches=matches,
+                         search_category=search_category,
+                         search_date=search_date)
+        
+        
+        
+        
+        
+#CSR ROUTES 
+# -----------------------------------------------------------------------------
+@bp.route('/csr/dashboard')
+@login_required
+def csr_dashboard():
+    #BOUNDARY for: As CSR, I want to access my dashboard#
+    if session.get("profile_name", "").lower() != "csr rep": 
+        flash("Access denied. CSR Representative profile required.", "error")
+        return redirect(url_for("boundary.on_login"))
+    return render_template('csr_dashboard.html')
+    
+    
+# User Story 1 Boundary
+@bp.route('/csr/requests/search')
+@login_required
+def csr_search_available_requests():
+    #BOUNDARY for: As CSR, I want to search for available service requests#
+    if session.get("profile_name", "").lower() != "csr rep": 
+        flash("Access denied.", "error")
+        return redirect(url_for("boundary.on_login"))
+    
+    search_term = request.args.get('q', '').strip()
+    category = request.args.get('category', '').strip()
+    urgency = request.args.get('urgency', '').strip()
+    
+    ctrl = CSRSearchAvailableRequestsController()
+    result = ctrl.search_available_requests(search_term, category, urgency)
+    
+    if isinstance(result, str):
+        flash("Error searching requests.", "error")
+        requests = []
+    else:
+        requests = result
+    
+    return render_template('csr_search_requests.html', 
+                         requests=requests, 
+                         search_term=search_term,
+                         category=category,
+                         urgency=urgency)
+
+
+@bp.route('/csr/requests/<int:request_id>')
+@login_required
+def csr_view_request_details(request_id):
+    #BOUNDARY for: As CSR, I want to view detailed information about a service request#
+    if session.get("profile_name", "").lower() != "csr rep": 
+        flash("Access denied.", "error")
+        return redirect(url_for("boundary.on_login"))
+    
+    csr_company_id = session.get('user_id')
+    
+    ctrl = CSRViewRequestDetailsController()
+    result = ctrl.get_request_details(request_id, csr_company_id)
+    
+    if isinstance(result, str):
+        flash("Request not found.", "error")
+        return redirect(url_for('boundary.csr_search_available_requests'))
+    
+    return render_template('csr_request_details.html', request=result)
+
+
+@bp.route('/csr/shortlist/add/<int:request_id>', methods=['POST'])
+@login_required
+def csr_save_to_shortlist(request_id):
+    #BOUNDARY for: As CSR, I want to save interesting requests to a shortlist#
+    if session.get("profile_name", "").lower() != "csr rep": 
+        flash("Access denied.", "error")
+        return redirect(url_for("boundary.on_login"))
+    
+    csr_company_id = session.get('user_id')
+    ctrl = CSRSaveToShortlistController()
+    result = ctrl.add_to_shortlist(request_id, csr_company_id)
+    
+    if result == "success":
+        flash("Request added to shortlist!", "ok")
+    elif result == "already_shortlisted":
+        flash("Request is already in your shortlist.", "info")
+    else:
+        flash("Error adding to shortlist.", "error")
+    
+    return redirect(url_for('boundary.csr_search_available_requests'))
+
+
+
+@bp.route('/csr/shortlist/search')
+@login_required
+def csr_search_shortlisted_requests():
+    #BOUNDARY for: As CSR, I want to search through my shortlisted requests#
+    if session.get("profile_name", "").lower() != "csr rep": 
+        flash("Access denied.", "error")
+        return redirect(url_for("boundary.on_login"))
+    
+    search_term = request.args.get('q', '').strip()
+    csr_company_id = session.get('user_id')
+    
+    ctrl = CSRSearchShortlistedRequestsController()
+    result = ctrl.search_shortlisted_requests(csr_company_id, search_term)
+    
+    if isinstance(result, str):
+        flash("Error loading shortlist.", "error")
+        requests = []
+    else:
+        requests = result
+    
+    return render_template('csr_shortlist.html', 
+                         requests=requests, 
+                         search_term=search_term)
+
+
+@bp.route('/csr/shortlist/<int:request_id>')
+@login_required
+def csr_view_shortlisted_request(request_id):
+    #BOUNDARY for: As CSR, I want to view the details of my shortlisted requests#
+    if session.get("profile_name", "").lower() != "csr rep": 
+        flash("Access denied.", "error")
+        return redirect(url_for("boundary.on_login"))
+    
+    csr_company_id = session.get('user_id')
+    ctrl = CSRViewShortlistedRequestController()
+    result = ctrl.get_shortlisted_request_details(request_id, csr_company_id)
+    
+    if isinstance(result, str):
+        flash("Request not found in your shortlist.", "error")
+        return redirect(url_for('boundary.csr_search_shortlisted_requests'))
+    
+    return render_template('csr_shortlisted_request_details.html', request=result)
+
+
+@bp.route('/csr/shortlist/remove/<int:request_id>', methods=['POST'])
+@login_required
+def csr_remove_from_shortlist(request_id):
+    #BOUNDARY for removing from shortlist#
+    if session.get("profile_name", "").lower() != "csr rep": 
+        flash("Access denied.", "error")
+        return redirect(url_for("boundary.on_login"))
+    
+    csr_company_id = session.get('user_id')
+    ctrl = CSRRemoveFromShortlistController()
+    result = ctrl.remove_from_shortlist(request_id, csr_company_id)
+    
+    if result == "success":
+        flash("Request removed from shortlist.", "ok")
+    else:
+        flash("Error removing from shortlist.", "error")
+    
+    return redirect(url_for('boundary.csr_search_shortlisted_requests'))
+    
+    
+@bp.route('/csr/services/completed/history')
+@login_required
+def csr_completed_services_history():
+    #BOUNDARY for: As CSR Representative, I want to view the history of completed volunteer services#
+    if session.get("profile_name", "").lower() != "csr rep": 
+        flash("Access denied.", "error")
+        return redirect(url_for("boundary.on_login"))
+    
+    csr_company_id = session.get('user_id')
+    
+    ctrl = CSRViewCompletedServicesController()
+    result = ctrl.get_completed_services_history(csr_company_id)
+    
+    if isinstance(result, str):
+        flash("Error loading completed services history.", "error")
+        services = []
+    else:
+        services = result
+    
+    return render_template('csr_completed_services.html', 
+                         services=services,
+                         search_category=None,
+                         search_date=None,
+                         current_page='history')
+
+
+@bp.route('/csr/services/completed/search')
+@login_required
+def csr_search_completed_services():
+    #BOUNDARY for: As CSR Representative, I want to search for completed volunteer services by type and date#
+    if session.get("profile_name", "").lower() != "csr rep": 
+        flash("Access denied.", "error")
+        return redirect(url_for("boundary.on_login"))
+    
+    csr_company_id = session.get('user_id')
+    
+    # BOUNDARY: Get search parameters
+    search_category = request.args.get('category', '').strip()
+    search_date = request.args.get('date', '').strip()
+    
+    # BOUNDARY: Validate date format
+    parsed_date = None
+    if search_date:
+        try:
+            parsed_date = datetime.strptime(search_date, '%Y-%m-%d').date()
+        except ValueError:
+            flash("Invalid date format. Use YYYY-MM-DD.", "error")
+            search_date = ""
+    
+    ctrl = CSRSearchCompletedServicesController()
+    result = ctrl.search_completed_services(csr_company_id, search_category, parsed_date)
+    
+    if isinstance(result, str):
+        flash("Error searching completed services.", "error")
+        services = []
+    else:
+        services = result
+    
+    return render_template('csr_completed_services.html', 
+                         services=services,
+                         search_category=search_category,
+                         search_date=search_date,
+                         current_page='search')
