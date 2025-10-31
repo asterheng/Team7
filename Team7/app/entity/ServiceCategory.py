@@ -56,13 +56,30 @@ class ServiceCategory(db.Model):
     # Read / List
     # -------------------------------
     @classmethod
-    def ListServiceCategory(cls, page: int | None = 1, per_page: int = 20):
-        q = cls.query.order_by(cls.id.asc())
-        if page is None:
+    def ListServiceCategory(cls, page: int | None = None, per_page: int = 20):
+        try:
+            q = cls.query.order_by(cls.id.asc())
+
+            if page is not None:
+                pg = q.paginate(page=page, per_page=per_page, error_out=False)
+                return {
+                    "ok": True,
+                    "data": pg.items,   # list[ServiceCategory]
+                    "pagination": {
+                        "page": pg.page, "pages": pg.pages,
+                        "has_prev": pg.has_prev, "has_next": pg.has_next,
+                        "prev_num": pg.prev_num, "next_num": pg.next_num,
+                        "total": pg.total, "per_page": pg.per_page,
+                    },
+                    "errors": [],
+                }
+
             rows = q.all()
             return {"ok": True, "data": rows, "errors": []}
-        pg = q.paginate(page=page, per_page=per_page)
-        return {"ok": True, "data": pg.items, "pagination": pg, "errors": []}
+
+        except Exception as e:
+            db.session.rollback()
+            return {"ok": False, "data": [], "errors": [f"Database error: {e}"]}
 
     # -------------------------------
     # Update

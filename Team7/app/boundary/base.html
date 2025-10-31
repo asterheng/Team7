@@ -50,8 +50,14 @@
 		{% endif %}
 
 		{% if session.get('profile_name', '').lower() == 'platform management' %}
-			<a href="{{ url_for('boundary.create_service_category') }}">Create Category</a>
-			<a href="{{ url_for('boundary.list_service_categories') }}">List Categories</a>
+			{% set on_pm = request.endpoint == 'boundary.service_category_dashboard' %}
+			{% if has_endpoint('boundary.service_category_dashboard') %}
+				{% if not on_pm %}
+					<a href="{{ url_for('boundary.service_category_dashboard') }}">Home</a>
+					<a href="{{ url_for('boundary.create_service_category') }}">Create Category</a>
+					<a href="{{ url_for('boundary.list_service_categories') }}">List Categories</a>
+				{% endif %}
+			{% endif %}
 		{% endif %}
     </div>
 

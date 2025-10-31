@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Service Category Dashboard</h2>
+
+<div class="welcome-section">
+  <p>Welcome, <strong>{{ session.user_name }}</strong>!</p>
+  <p>Manage service categories: create, search, update, and suspend.</p>
+</div>
+
+<!-- Action grid -->
+<div class="dashboard-actions">
+  <div class="action-card">
+    <h3>🧩 Create Category</h3>
+    <p>Add a new service category to the catalog</p>
+    <a href="{{ url_for('boundary.create_service_category') }}" class="dashboard-btn">Create Category</a>
+  </div>
+
+  <div class="action-card">
+    <h3>🔎 Browse & Search</h3>
+    <p>Find, edit, or suspend existing categories</p>
+    <a href="{{ url_for('boundary.list_service_categories') }}" class="dashboard-btn">List Categories</a>
+  </div>
+
+<style>
+.dashboard-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+.action-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+}
+.action-card h3 { margin-top: 0; color: #1e293b; }
+.action-card p { color: #64748b; margin-bottom: 1rem; }
+
+.dashboard-btn {
+  display: inline-block;
+  background: #2563eb;
+  color: white;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  border: 2px solid #1d4ed8;
+  transition: background 0.2s;
+}
+.dashboard-btn:hover { background: #1d4ed8; color: white; }
+
+.welcome-section {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  color: white; padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem;
+}
+.welcome-section p { margin: 0.5rem 0; font-size: 1.1rem; }
+
+.stats-row {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem; margin-top: .75rem;
+}
+.stat-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1rem 1.25rem; }
+.stat-label { color: #64748b; font-size: 0.9rem; }
+.stat-value { color: #0f172a; font-size: 1.6rem; font-weight: 700; margin-top: 0.15rem; }
+
+.quick-actions {
+  display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin-top: 1.25rem;
+}
+.search-form { display: flex; gap: 0.5rem; align-items: center; }
+.search-form input {
+  padding: 0.5rem 0.75rem; border: 1px solid #cbd5e1; border-radius: 8px; min-width: 260px;
+}
+.search-form button {
+  background: #334155; color: white; padding: 0.5rem 0.9rem; border-radius: 8px; border: 0; font-weight: 600; cursor: pointer;
+}
+.search-form button:hover { background: #1f2937; }
+</style>
+{% endblock %}

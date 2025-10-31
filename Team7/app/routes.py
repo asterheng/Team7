@@ -98,7 +98,7 @@ def on_login():
         if profile_name == "admin":
             return redirect(url_for('boundary.admin_dashboard'))
         elif profile_name == "platform management":
-            return redirect(url_for('boundary.list_service_categories'))
+            return redirect(url_for('boundary.service_category_dashboard'))
         elif profile_name == "pin":
             return redirect(url_for('boundary.pin_dashboard'))
         elif profile_name == "csr rep": 
@@ -132,6 +132,20 @@ def admin_dashboard():
         flash("You do not have permission to access the admin dashboard.", "error")
         return redirect(url_for('boundary.home'))
     return render_template("AdminDashboard.html")
+
+# -----------------------------------------------------------------------------
+# Service Category dashboard
+# -----------------------------------------------------------------------------
+@bp.route('/service-categories/dashboard')
+@login_required
+def service_category_dashboard():
+    # Allow admins or platform management (adjust to your roles)
+    role = (session.get("profile_name") or "").lower()
+    if role not in ("admin", "platform management"):
+        flash("You do not have permission to access Service Category Dashboard.", "error")
+        return redirect(url_for('boundary.home'))
+
+    return render_template("ServiceCategoryDashboard.html")
 
 # -----------------------------------------------------------------------------
 # Home → Login
@@ -409,18 +423,20 @@ def create_service_category():
 @login_required
 def list_service_categories():
     q = (request.args.get('q') or '').strip()
-
+    page = request.args.get('page', default=1, type=int)  # pass None to disable pagination
+    per_page = 20
+    
     if q:
         res = SearchServiceCategoryController().SearchServiceCategory(q)
     else:
-        res = ListServiceCategoryController().ListServiceCategory()
+        res = ListServiceCategoryController().ListServiceCategory(page=page, per_page=per_page)
 
     if not res["ok"]:
         for e in res.get("errors", []):
             flash(e, "list_service_categories:err")
-        return render_template('list_service_categories.html', categories=[], q=q)
+        return render_template('list_service_categories.html', categories=[], q=q, pagination=None)
 
-    return render_template('list_service_categories.html', categories=res.get("data", []), q=q)
+    return render_template('list_service_categories.html', categories=res.get("data", []), q=q, pagination=res.get("pagination"))
 
 # -----------------------------------------------------------------------------
 # Service Category (UPDATE) - protected
