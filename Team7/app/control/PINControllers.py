@@ -4,7 +4,7 @@ from ..entity.PINEntities import (PINRequestService)
 class PINCreateRequestController:
     #Controller for: As PIN, I want to create assistance requests#
     
-    def create_request(self, request_data):
+    def create_pin_request(self, request_data):
             request = PINRequestService.create_pin_request(**request_data)
             return request
             
@@ -15,8 +15,8 @@ class PINViewRequestsController:
 
 class PINSuspendRequestController:
     #Controller for: As PIN, I want to suspend my requests#
-     def suspend_request(self, request_id, pin_id):
-        return PINRequestService.suspend_request(request_id, pin_id)
+     def suspend_pin_request(self, request_id, pin_id):
+        return PINRequestService.suspend_pin_request(request_id, pin_id)
 
 class PINViewHistoryController:
     #Controller for: As PIN, I want to view my request history#
@@ -25,7 +25,7 @@ class PINViewHistoryController:
 
 class PINSearchRequestsController:
     #Controller for: As PIN, I want to search my requests#
-    def search_requests(self, pin_id, search_term):
+    def search_pin_requests(self, pin_id, search_term):
        return PINRequestService.search_pin_requests(pin_id, search_term)
 
 class PINUpdateRequestController:
