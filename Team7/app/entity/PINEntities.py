@@ -135,7 +135,7 @@ class PINRequestService:
 	
     #Entity for: As PIN, I want to suspend my requests#
     @classmethod
-    def suspend_request(cls, request_id, pin_id):
+    def suspend_pin_request(cls, request_id, pin_id):
         try:
             request = Request.query.filter_by(id=request_id, pin_id=pin_id).first()
             request.status = 'suspended'
