@@ -38,7 +38,7 @@ from . import db
 
 def seed_defaults():
     # 1️⃣ Ensure user profiles exist
-    profile_names = ["Admin", "CRS Rep", "PIN", "Platform Management"]
+    profile_names = ["Admin", "CSR Rep", "PIN", "Platform Management"]
     existing_profiles = {p.name for p in UserProfile.query.all()}
 
     for name in profile_names:

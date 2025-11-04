@@ -28,12 +28,13 @@
   <label>Category *
     <select name="category" required>
       <option value="">-- Select Category --</option>
-      <option value="Medical" {% if request.category == 'Medical' %}selected{% endif %}>Medical Assistance</option>
-      <option value="Transportation" {% if request.category == 'Transportation' %}selected{% endif %}>Transportation</option>
-      <option value="Food" {% if request.category == 'Food' %}selected{% endif %}>Food Delivery</option>
-      <option value="Companionship" {% if request.category == 'Companionship' %}selected{% endif %}>Companionship</option>
-      <option value="Household" {% if request.category == 'Household' %}selected{% endif %}>Household Chores</option>
-      <option value="Other" {% if request.category == 'Other' %}selected{% endif %}>Other</option>
+      {# categories: list of ServiceCategory; skip suspended already in route #}
+      {% for c in categories %}
+        {% set cname = c.name %}
+        <option value="{{ cname }}" {% if request.category == cname %}selected{% endif %}>
+          {{ cname }}
+        </option>
+      {% endfor %}
     </select>
   </label>
   

@@ -563,7 +563,7 @@ def create_request():
         
         # CONTROL: Pure data passing to story-specific controller
         ctrl = PINCreateRequestController()
-        result = ctrl.create_request(request_data)
+        result = ctrl.create_pin_request(request_data)
         
         # BOUNDARY: Handle display to user
         if result == "success":
@@ -630,7 +630,7 @@ def suspend_request(request_id):
     
     # CONTROL: Pure data passing to story-specific controller
     ctrl = PINSuspendRequestController()
-    result = ctrl.suspend_request(request_id, session.get('user_id'))
+    result = ctrl.suspend_pin_request(request_id, session.get('user_id'))
     
     # BOUNDARY: Handle display to user
     if result == "success":
@@ -665,7 +665,7 @@ def search_requests():
     
     # BOUNDARY: Call controller
     ctrl = PINSearchRequestsController()
-    result = ctrl.search_requests(pin_id, search_term)
+    result = ctrl.search_pin_requests(pin_id, search_term)
     
     # BOUNDARY: Handle user display
     if isinstance(result, str):  #  String = error
@@ -705,6 +705,9 @@ def edit_request(request_id):
     pin_id = session.get('user_id')
     ctrl = PINUpdateRequestController()
     
+    res = ListServiceCategoryController().ListServiceCategory(page=None)  # returns {"ok":..., "data":[...]}
+    categories = [c for c in res.get("data", []) if not getattr(c, "is_suspended", False)]
+    
     # GET: Get request data through controller for display
     if request.method == 'GET':
         result = ctrl.get_request_for_display(request_id, pin_id)
@@ -719,7 +722,7 @@ def edit_request(request_id):
             return redirect(url_for('boundary.pin_requests'))
         
         # BOUNDARY: Render template with actual request data
-        return render_template('edit_request.html', request=result)
+        return render_template('edit_request.html', request=result, categories=categories)
     
     # POST: Handle form submission
     if request.method == 'POST':
@@ -751,7 +754,7 @@ def edit_request(request_id):
             current_result = ctrl.get_request_for_display(request_id, pin_id)
             if isinstance(current_result, str):
                 return redirect(url_for('boundary.pin_requests'))
-            return render_template('edit_request.html', request=current_result), 400
+            return render_template('edit_request.html', request=current_result, categories=categories), 400
         
         # BOUNDARY: Prepare data for controller
         update_data = {
