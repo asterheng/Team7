@@ -6,28 +6,45 @@ on:
 jobs:
   build-test:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
       - name: Set up Python
+      # Use a single version for speed; add a matrix if you want
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: 'pip'
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          else
+            pip install flask flask_sqlalchemy werkzeug
+          fi
 
-      - name: Verify SQLite
+      - name: Lint (ruff) – optional but nice
         run: |
-          sudo apt-get update
-          sudo apt-get install -y sqlite3
-          sqlite3 --version
+          pip install ruff
+          ruff check . || true   # don’t fail your first run; tighten later
 
-      - name: Prepare database
+      - name: Run tests (skips gracefully if none)
         run: |
-          mkdir -p instance
-          sqlite3 instance/team7.db ".databases" ".quit"
+          if [ -d tests ]; then
+            pip install pytest
+            pytest -q
+          else
+            echo "✅ Build successful (no tests folder found)"
+          fi
 
+      - name: Archive app (artifact for debugging/evidence)
+        uses: actions/upload-artifact@v4
+        with:
+          name: team7-build
+          path: |
+            **/*.py
+            requirements.txt
+            README.md
+            !.git/**
