@@ -33,7 +33,7 @@ def create_app():
 
 
 from .entity.UserProfile import UserProfile
-from .entity.UserAccount import UserAccount
+from .entity.UserAdmin import UserAdmin
 from . import db
 
 def seed_defaults():
@@ -53,11 +53,11 @@ def seed_defaults():
         return
 
     admin_email = "admin@example.com"
-    existing_admin = UserAccount.query.filter_by(email=admin_email).first()
+    existing_admin = UserAdmin.query.filter_by(email=admin_email).first()
 
     if not existing_admin:
         # Plain-text password
-        admin_user = UserAccount(
+        admin_user = UserAdmin(
             name="Administrator",
             email=admin_email,
             password="admin123",  # plain text, for development only

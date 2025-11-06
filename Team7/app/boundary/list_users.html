@@ -37,12 +37,14 @@
         <td>{{ 'Yes' if u.is_suspended else 'No' }}</td>
         <td> <a href="{{ url_for('boundary.edit_user', user_id=u.id) }}" class="btn small edit-link">Edit</a></td>
 		<td>		
-		<form method="post" action="{{ url_for('boundary.suspend_user', user_id=u.id) }}" style="margin:0;">
-			<input type="hidden" name="is_suspended" value="{{ 0 if u.is_suspended else 1 }}">
-			<button type="submit" class="btn small {{ 'unsuspend' if u.is_suspended else 'suspend' }}">
-			  {{ 'Unsuspend' if u.is_suspended else 'Suspend' }}
-			</button>
-		</form>
+			{% if not u.is_suspended %}
+			  <form method="post" action="{{ url_for('boundary.suspend_user', user_id=u.id) }}" style="margin:0;">
+				<input type="hidden" name="is_suspended" value="1">
+				<button type="submit" class="btn small suspend">Suspend</button>
+			  </form>
+			{% else %}
+			  <button type="button" class="btn small suspended" disabled>Suspended</button>
+			{% endif %}
 		</td>
       </tr>
     {% endfor %}

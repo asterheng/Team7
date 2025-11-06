@@ -19,7 +19,7 @@ class Request(db.Model):
     shortlist_count = db.Column(db.Integer, default=0)
     
     # Relationship to UserAccount
-    pin_user = db.relationship('UserAccount', backref=db.backref('requests', lazy=True))
+    pin_user = db.relationship('UserAdmin', backref=db.backref('requests', lazy=True))
     
     def __init__(self, pin_id, title, description, category, urgency='medium', location=None, preferred_date=None):
         self.pin_id = pin_id

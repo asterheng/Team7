@@ -203,9 +203,9 @@ def list_users():
 
     return render_template(
         'list_users.html',
-        rows=res["data"],                  # list[(UserAccount, UserProfile)]
-        q=q,                               # Search list[(UserAccount, UserProfile)]
-        pagination=res.get("pagination")   # dict or None
+        rows=res["data"],                  
+        q=q,                              
+        pagination=res.get("pagination")  
     )
     
 # -----------------------------------------------------------------------------
@@ -269,7 +269,7 @@ def edit_user(user_id):
 def suspend_user(user_id):
     is_suspended = int(request.form.get('is_suspended') or 0)
     status = SuspendedUserController().SuspendedUser(user_id, is_suspended)
-
+    
     if status in ("success", "noop"):
         msg = "User suspended." if is_suspended else "User unsuspended."
         flash(msg, "list_user:ok")
