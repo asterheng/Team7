@@ -9,6 +9,11 @@ sqlite3 instance/team7.db ".databases" ".quit"
 # run app
 python run.py
 
+| Evidence | Description |
+|-----------|--------------|
+| ✅ CI Run | GitHub Actions shows “Build successful” on push |
+| 🔄 Integration Flow | Mermaid CI/CD flow diagram renders correctly |
+| 🏷️ Release | Final demo build published as v1.0 |
 
 ## CI/CD Flow
 
@@ -20,8 +25,4 @@ flowchart LR
 
 ## Evidence Summary
 
-| Evidence | Description |
-|-----------|--------------|
-| ✅ CI Run | GitHub Actions shows “Build successful” on push |
-| 🔄 Integration Flow | Mermaid CI/CD flow diagram renders correctly |
-| 🏷️ Release | Final demo build published as v1.0 |
+
