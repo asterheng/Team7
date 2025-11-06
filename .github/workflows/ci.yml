@@ -1,16 +1,50 @@
-name: CI Test
-on: [push]
+name: Team7 CI
+on:
+  push:
+  pull_request:
+
 jobs:
-  build:
+  build-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Set up Python
+      # Use a single version for speed; add a matrix if you want
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: 'pip'
+
       - name: Install dependencies
         run: |
-          pip install flask flask_sqlalchemy werkzeug
-      - name: Run tests
-        run: echo "✅ Build successful"
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          else
+            pip install flask flask_sqlalchemy werkzeug
+          fi
+
+      - name: Lint (ruff) – optional but nice
+        run: |
+          pip install ruff
+          ruff check . || true   # don’t fail your first run; tighten later
+
+      - name: Run tests (skips gracefully if none)
+        run: |
+          if [ -d tests ]; then
+            pip install pytest
+            pytest -q
+          else
+            echo "✅ Build successful (no tests folder found)"
+          fi
+
+      - name: Archive app (artifact for debugging/evidence)
+        uses: actions/upload-artifact@v4
+        with:
+          name: team7-build
+          path: |
+            **/*.py
+            requirements.txt
+            README.md
+            !.git/**
