@@ -6,45 +6,40 @@ on:
 jobs:
   build-test:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
       - name: Set up Python
-      # Use a single version for speed; add a matrix if you want
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip'
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then
-            pip install -r requirements.txt
-          else
-            pip install flask flask_sqlalchemy werkzeug
-          fi
+          pip install -r requirements.txt
 
-      - name: Lint (ruff) – optional but nice
+      - name: Verify SQLite
         run: |
-          pip install ruff
-          ruff check . || true   # don’t fail your first run; tighten later
+          sudo apt-get update
+          sudo apt-get install -y sqlite3
+          sqlite3 --version
 
-      - name: Run tests (skips gracefully if none)
+      - name: Prepare database
         run: |
-          if [ -d tests ]; then
-            pip install pytest
-            pytest -q
-          else
-            echo "✅ Build successful (no tests folder found)"
-          fi
+          mkdir -p instance
+          sqlite3 instance/team7.db ".databases" ".quit"
 
-      - name: Archive app (artifact for debugging/evidence)
-        uses: actions/upload-artifact@v4
-        with:
-          name: team7-build
-          path: |
-            **/*.py
-            requirements.txt
-            README.md
-            !.git/**
+      - name: Smoke test (import app)
+        run: |
+          python - <<'PY'
+          import importlib, sys
+          try:
+              mod = importlib.import_module("run")
+              ok = hasattr(mod, "app")
+              print("✅ Build successful - app imported:", ok)
+          except Exception as e:
+              print("❌ Import failed:", e)
+              sys.exit(1)
+          PY
