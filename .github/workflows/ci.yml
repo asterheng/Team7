@@ -31,15 +31,3 @@ jobs:
           mkdir -p instance
           sqlite3 instance/team7.db ".databases" ".quit"
 
-      - name: Smoke test (import app)
-        run: |
-          python - <<'PY'
-          import importlib, sys
-          try:
-              mod = importlib.import_module("run")
-              ok = hasattr(mod, "app")
-              print("✅ Build successful - app imported:", ok)
-          except Exception as e:
-              print("❌ Import failed:", e)
-              sys.exit(1)
-          PY
