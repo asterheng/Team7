@@ -9,6 +9,8 @@ sqlite3 instance/team7.db ".databases" ".quit"
 # run app
 python run.py
 
+
+## Evidence Summary
 | Evidence | Description |
 |-----------|--------------|
 | ✅ CI Run | GitHub Actions shows “Build successful” on push |
@@ -22,7 +24,3 @@ flowchart LR
   A["Developer commits"] --> B["GitHub Action builds/tests"]
   B --> C["Pull Request and Merge"]
   C --> D["Deployment (localhost)"]
-
-## Evidence Summary
-
-
