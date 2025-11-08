@@ -11,8 +11,8 @@ class CSRViewCompletedServicesController:
 
 class CSRSearchCompletedServicesController:
    #Controller for: As CSR Representative, I want to search for completed volunteer services by type and date#    
-    def search_completed_services(self, csr_company_id, search_category=None, search_date=None):
-        return CSRService.search_completed_services(csr_company_id, search_category, search_date)
+    def search_completed_services(self, csr_company_id, search_title=None, search_date=None):
+        return CSRService.search_completed_services(csr_company_id, search_title, search_date)
 
 
 class CSRSearchAvailableRequestsController:

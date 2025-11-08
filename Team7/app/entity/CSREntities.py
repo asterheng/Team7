@@ -1,7 +1,7 @@
 # app/entity/CSREntities.py
 from .. import db
 from .Request import Request, PINRequestView
-from datetime import datetime
+from datetime import datetime, timedelta
 
 class CSRService(db.Model):
     __tablename__ = 'csr_shortlist'
@@ -32,18 +32,20 @@ class CSRService(db.Model):
 
     #Entity for: As CSR Representative, I want to search for completed volunteer services by type and date#
     @classmethod
-    def search_completed_services(cls, csr_company_id, search_category=None, search_date=None):
+    def search_completed_services(cls, csr_company_id, search_title=None, search_date=None):
         try:
             query = Request.query.join(CSRService).filter(
                 CSRService.csr_company_id == csr_company_id,
                 Request.status == 'completed'
             )
             
-            if search_category:
-                query = query.filter(Request.category.ilike(f"%{search_category}%"))
+            if search_title:
+                query = query.filter(Request.title.ilike(f"%{search_title}%"))
             
             if search_date:
-                query = query.filter(Request.preferred_date == search_date)
+                from datetime import timedelta
+                query = query.filter(Request.updated_at >= search_date)
+                query = query.filter(Request.updated_at < search_date + timedelta(days=1))
             
             return query.order_by(Request.updated_at.desc()).all()
         except Exception as e:

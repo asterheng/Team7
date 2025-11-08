@@ -21,7 +21,7 @@
     <a class="btn reset" href="{{ url_for('boundary.list_profiles') }}">Reset</a>
   {% endif %}
 </form>
-
+{% if profiles %}
 <table>
   <thead><tr><th>ID</th><th>Name</th><th>Description</th><th>Suspended</th><th>Update</th><th>Suspend</th></tr></thead>
   <tbody>
@@ -47,6 +47,9 @@
     {% endfor %}
   </tbody>
 </table>
+{% else %}
+  <p>No user profile found{% if q %} for “{{ q }}”{% endif %}.</p>
+{% endif %}
 <style>
   .flashes{list-style:none;padding:0;margin:1rem 0;text-align:center}
   .flashes li{display:inline-block;padding:.7rem 1rem;border-radius:10px;margin:.25rem}

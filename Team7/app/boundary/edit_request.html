@@ -9,11 +9,13 @@
 </div>
 
 <!-- 🆕 FLASH MESSAGES - Only show ERRORS, not success messages -->
-{% with messages = get_flashed_messages(with_categories=true, category_filter=['error']) %}
+{% with messages = get_flashed_messages(with_categories=true,
+      category_filter=['error']) %}
   {% if messages %}
     <ul class="flashes">
       {% for category, message in messages %}
-        <li class="{{ category }}">{{ message }}</li>
+        {% set cat = category.split(':')[-1] %}
+        <li class="{{ cat }}">{{ message }}</li>
       {% endfor %}
     </ul>
   {% endif %}
@@ -77,6 +79,10 @@
 
 <style>
 /* Reuse your existing styles from create_request.html */
+  .flashes{list-style:none;padding:0;margin:1rem 0;text-align:center}
+  .flashes li{display:inline-block;padding:.7rem 1rem;border-radius:10px;margin:.25rem}
+  .flashes .ok{background:#d1fae5;border:1px solid #10b981;color:#065f46}
+  .flashes .error{background:#fee2e2;border:1px solid #ef4444;color:#991b1b}
 .page-header {
     display: flex;
     justify-content: space-between;

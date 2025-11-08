@@ -9,11 +9,13 @@
 </div>
 
 <!-- 🆕 FLASH MESSAGES - Show ALL messages including edit success -->
-{% with messages = get_flashed_messages(with_categories=true) %}
+{% with messages = get_flashed_messages(with_categories=true,
+      category_filter=['suspend_request:ok', 'suspend_request:err','ok']) %}
   {% if messages %}
     <ul class="flashes">
       {% for category, message in messages %}
-        <li class="{{ category }}">{{ message }}</li>
+        {% set cat = category.split(':')[-1] %}
+        <li class="{{ cat }}">{{ message }}</li>
       {% endfor %}
     </ul>
   {% endif %}
@@ -106,6 +108,10 @@
 {% endif %}
 
 <style>
+	.flashes{list-style:none;padding:0;margin:1rem 0;text-align:center}
+  .flashes li{display:inline-block;padding:.7rem 1rem;border-radius:10px;margin:.25rem}
+  .flashes .ok{background:#d1fae5;border:1px solid #10b981;color:#065f46}
+  .flashes .err{background:#fee2e2;border:1px solid #ef4444;color:#991b1b}
 /* BUTTON STYLES  */
 .btn {
     display: inline-block !important;

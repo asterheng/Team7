@@ -69,7 +69,7 @@ bp = Blueprint('boundary', __name__)
 @bp.route('/login', methods=['GET', 'POST'])
 def on_login():
     if request.method == 'POST':
-        email = (request.form.get('email') or '').strip()
+        email = (request.form.get('email') or '').strip().lower()
         password = (request.form.get('password') or '').strip()
 
         if not email or not password:
@@ -749,7 +749,7 @@ def edit_request(request_id):
         
         if errors:
             for e in errors:
-                flash(e, "err")
+                flash(e, "error")
             # Get current data through controller for re-rendering
             current_result = ctrl.get_request_for_display(request_id, pin_id)
             if isinstance(current_result, str):
@@ -859,7 +859,7 @@ def pin_search_completed_matches():
     pin_id = session.get('user_id')
     
     # BOUNDARY: Get search parameters
-    search_category = request.args.get('category', '').strip()
+    search_title = request.args.get('title', '').strip()
     search_date = request.args.get('date', '').strip()
     
     # BOUNDARY: Validate date format
@@ -873,18 +873,21 @@ def pin_search_completed_matches():
     
     # BOUNDARY: Call specific controller
     ctrl = PINCompletedMatchesSearchController()
-    result = ctrl.search_completed_matches(pin_id, search_category, parsed_date)
+    result = ctrl.search_completed_matches(pin_id, search_title, parsed_date)
     
     # BOUNDARY: Handle display
     if isinstance(result, str):
         flash("Error searching completed matches.", "error")
-        matches = []
+        return render_template('pin_completed_matches.html', 
+                         matches=[],
+                         search_title=search_title,
+                         search_date=search_date)
     else:
         matches = result
     
     return render_template('pin_completed_matches.html', 
                          matches=matches,
-                         search_category=search_category,
+                         search_title=search_title,
                          search_date=search_date)
         
         
@@ -916,6 +919,9 @@ def csr_search_available_requests():
     category = request.args.get('category', '').strip()
     urgency = request.args.get('urgency', '').strip()
     
+    res = ListServiceCategoryController().ListServiceCategory(page=None)
+    categories = [c for c in res.get("data", []) if not getattr(c, "is_suspended", False)]
+    
     ctrl = CSRSearchAvailableRequestsController()
     result = ctrl.search_available_requests(search_term, category, urgency)
     
@@ -928,8 +934,9 @@ def csr_search_available_requests():
     return render_template('csr_search_requests.html', 
                          requests=requests, 
                          search_term=search_term,
-                         category=category,
-                         urgency=urgency)
+                         selected_category=category,
+                         urgency=urgency,
+                         available_categories=categories)
 
 
 @bp.route('/csr/requests/<int:request_id>')
@@ -1076,7 +1083,7 @@ def csr_search_completed_services():
     csr_company_id = session.get('user_id')
     
     # BOUNDARY: Get search parameters
-    search_category = request.args.get('category', '').strip()
+    search_title = request.args.get('title', '').strip()
     search_date = request.args.get('date', '').strip()
     
     # BOUNDARY: Validate date format
@@ -1089,7 +1096,7 @@ def csr_search_completed_services():
             search_date = ""
     
     ctrl = CSRSearchCompletedServicesController()
-    result = ctrl.search_completed_services(csr_company_id, search_category, parsed_date)
+    result = ctrl.search_completed_services(csr_company_id, search_title, parsed_date)
     
     if isinstance(result, str):
         flash("Error searching completed services.", "error")
@@ -1099,6 +1106,7 @@ def csr_search_completed_services():
     
     return render_template('csr_completed_services.html', 
                          services=services,
-                         search_category=search_category,
+                         search_title=search_title,
                          search_date=search_date,
                          current_page='search')
+

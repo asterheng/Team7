@@ -21,9 +21,9 @@
                 <form method="GET" action="{{ url_for('boundary.csr_search_completed_services') }}">
                     <div class="row g-3">
                         <div class="col-md-4">
-                            <label for="category" class="form-label">Service Type</label>
-                            <input type="text" class="form-control" id="category" name="category" 
-                                   value="{{ search_category or '' }}" placeholder="e.g., Education, Healthcare">
+                            <label for="title" class="form-label">Service title</label>
+                            <input type="text" class="form-control" id="title" name="title" 
+                                   value="{{ search_title or '' }}" placeholder="e.g., Education, Healthcare">
                         </div>
                         <div class="col-md-4">
                             <label for="date" class="form-label">Service Date</label>
